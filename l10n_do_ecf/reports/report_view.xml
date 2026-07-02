@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Paper Format -->
+    <record id="paper_format_receipt_ri" model="report.paperformat">
+        <field name="name">Receipt Paper Format</field>
+        <field name="default" eval="True"/>
+        <field name="format">custom</field>
+        <field name="page_height">297</field>
+        <field name="page_width">100</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">2</field>
+        <field name="margin_bottom">2</field>
+        <field name="margin_left">2</field>
+        <field name="margin_right">2</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">40</field>
+<!--        <field name="dpi">90</field>-->
+    </record>
+
+    <!-- Invoice Receipt -->
+    <record id="action_receipt_invoice" model="ir.actions.report">
+        <field name="name">Tickets</field>
+        <field name="model">account.move</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">l10n_do_ecf.receipt_invoice</field>
+        <field name="report_file">l10n_do_ecf.receipt_invoice</field>
+        <field name="binding_model_id" ref="account.model_account_move"/>
+        <field name="print_report_name">(object._get_report_base_filename())</field>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="l10n_do_ecf.paper_format_receipt_ri"/>
+    </record>
+</odoo>

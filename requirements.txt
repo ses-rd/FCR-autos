@@ -1,0 +1,11 @@
+simplejson
+zeep
+python-stdnum==1.18
+pycountry
+numpy-financial
+lxml
+pyOpenSSL==23.2.0
+pyqrcode
+pypng
+xmltodict
+cryptography==42.0.8
