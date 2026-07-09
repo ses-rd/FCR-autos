@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+l10n_do_ecf.access_do_ce_document,access_do_ce_document,l10n_do_ecf.model_ecf_document,base.group_user,1,1,1,1
+l10n_do_ecf.access_do_ce_settings,access_do_ce_settings,l10n_do_ecf.model_ecf_settings,base.group_user,1,1,1,1
+l10n_do_ecf.access_acecf_document,access_acecf_document,l10n_do_ecf.model_acecf_document,base.group_user,1,1,1,0
+l10n_do_ecf.access_ecf_reference,access_ecf_reference,l10n_do_ecf.model_ecf_reference,base.group_user,1,1,1,0
+l10n_do_ecf.access_l10n_do_ecf_invoice_recreate_wizard,access_l10n_do_ecf_invoice_recreate_wizard,l10n_do_ecf.model_l10n_do_ecf_invoice_recreate_wizard,base.group_user,1,1,1,1

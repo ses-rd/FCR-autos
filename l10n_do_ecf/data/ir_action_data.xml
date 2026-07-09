@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_clear_token_cache" model="ir.actions.server">
+        <field name="name">Clear Token Cache</field>
+        <field name="model_id" ref="l10n_do_ecf.model_ecf_settings"/>
+        <field name="binding_model_id" ref="l10n_do_ecf.model_ecf_settings"/>
+        <field name="group_ids" eval="[(6, 0, [ref('account.group_account_manager')])]"/>
+        <field name="binding_view_types">form</field>
+        <field name="state">code</field>
+        <field name="code">
+action = record.clear_token_cache()
+        </field>
+    </record>
+</odoo>
