@@ -12,4 +12,5 @@ class AccountTaxGroup(models.Model):
         ('taxable_isr', 'Taxable ISR'),
         ('exempt', 'Exempt'),
         ('tips', 'Tips'),
+        ('other', 'Other'),
     ], string='Billing Indicator')
