@@ -10,4 +10,4 @@ class AccountTax(models.Model):
         "ECF Code and company must be unique",
     )
 
-    ecf_code = fields.Char(string='Taxes Additional ECF Code', size=3)
+    ecf_code = fields.Char(string='Taxes Additional ECF Code', size=3, copy=False)

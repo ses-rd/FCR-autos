@@ -106,8 +106,8 @@ class ECFSettings(models.Model):
             else ""
         )
         vals = {
-            "issue_date": cert.not_valid_before_utc,
-            "expire_date": cert.not_valid_after_utc,
+            "issue_date": cert.not_valid_before,
+            "expire_date": cert.not_valid_after,
             "subject_common_name": subject_common_name,
             "subject_serial_number": subject_serial_number,
             "issuer_common_name": issuer_common_name,
@@ -156,8 +156,6 @@ class ECFSettings(models.Model):
     def set_token_data(self, token_data: dict):
         self.ensure_one()
         expire = datetime.strptime(token_data.get('expira'), "%Y-%m-%dT%H:%M:%SZ")
-        # self.access_token = token_data.get('access_token')
-        # self.access_token_expires_in = expire
         self.write({
             'access_token': token_data.get('access_token'),
             'access_token_expires_in': expire

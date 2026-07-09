@@ -155,7 +155,7 @@ class AccountMove(models.Model):
         ncf_type = move.get_l10n_do_ncf_type()
 
         # Skip incoming documents with specific NCF types
-        if move.move_type in ['in_invoice', 'in_refund'] and ncf_type in ["01", "02", "03", "04", "31", "32", "44"]:
+        if move.move_type in ['in_invoice', 'in_refund'] and ncf_type in ["01", "02", "03", "04", "14", "31", "32", "44"]:
             return True
 
         # Skip incoming invoices without document type
