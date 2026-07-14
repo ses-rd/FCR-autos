@@ -988,7 +988,7 @@ msgstr "Cliente Fiscal"
 #: model:ir.model.fields,field_description:l10n_do_accounting.field_account_move__l10n_do_fiscal_sequence_id
 #: model:ir.model.fields,field_description:l10n_do_accounting.field_account_payment__l10n_do_fiscal_sequence_id
 msgid "Fiscal Sequence"
-msgstr ""
+msgstr "Secuencia fiscal"
 
 #. module: l10n_do_accounting
 #: model:ir.model.fields,help:l10n_do_accounting.field_account_fiscal_sequence__remaining_percentage

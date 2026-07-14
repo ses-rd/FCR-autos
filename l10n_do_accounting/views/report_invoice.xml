@@ -169,11 +169,20 @@
                       t-options='{"widget": "contact", "fields": ["address"], "no_marker": True}'/>
             </div>
         </xpath>
-        <xpath expr="//table[hasclass('o_main_table')]/tbody//td[hasclass('o_price_total')]" position="inside">
-            <t t-if="is_l10n_do_invoice and line.price_subtotal == line.price_total">
-                <span><strong>E</strong></span>
-            </t>
+        <xpath expr="//div[@id='right-elements']/div/div/table[hasclass('o_total_table')]/t" position="before">
+            <tr t-if="display_discount and is_l10n_do_invoice">
+                <td>Total Discount</td>
+                <td class="text-end">
+                    <span t-field="o.amount_discount"
+                          t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                </td>
+            </tr>
         </xpath>
+<!--        <xpath expr="//table[hasclass('o_main_table')]/tbody//td[hasclass('o_price_total')]" position="inside">-->
+<!--            <t t-if="is_l10n_do_invoice and line.price_subtotal == line.price_total">-->
+<!--                <span><strong>E</strong></span>-->
+<!--            </t>-->
+<!--        </xpath>-->
 
         <!-- Hide when l10n do invoice -->
         <!-- <xpath expr="//t[@t-esc='amount_by_group[4]']/.." position="attributes">
