@@ -35,7 +35,7 @@
                         <span t-if="o.company_id.vat" t-field="o.company_id.vat"/>
                     </span>
                     <br/>
-                    <span>
+                    <span t-if="o.invoice_date">
                         <strong>Date Issue:</strong>
                         <span t-field="o.invoice_date"/>
                     </span>

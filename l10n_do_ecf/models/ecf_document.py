@@ -299,9 +299,10 @@ class ECFDocument(models.Model):
             )
 
         if not self.company_id.street or not len(str(self.company_id.street).strip()):
-            action = self.env.ref("base.action_res_company_form")
+            # action = self.env.ref("base.action_res_company_form")
             msg = _('Your company has not defined a street.')
-            raise RedirectWarning(msg, action.id, _("Go to Companies"))
+            raise UserError(msg)
+            # raise RedirectWarning(msg, action.id, _("Go to Companies"))
 
         invoice_date = self.invoice_id.invoice_date
         if self.company_id.l10n_do_dgii_start_date and invoice_date < self.company_id.l10n_do_dgii_start_date:
