@@ -1,0 +1,17 @@
+# -*- coding: utf-8 -*-
+{
+    "name": "Patch l10n_cr_invoice - Invoice Report Information",
+    "version": "19.0.1.0.0",
+    "category": "Localization",
+    "summary": "Fix layout of l10n_cr invoice report information block",
+    "author": "Nimetrix Costarica C.A.",
+    "maintainers": ["Juan C\u00f3rdoba <juan.cordoba@nimetrixcostarica.com>"],
+    "license": "LGPL-3",
+    "depends": [
+        "l10n_do_ecf",
+    ],
+    "data": [
+        "views/report_invoice.xml",
+    ],
+    "installable": True,
+}

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <template id="l10n_do_fcr_auto_invoice_report_invoice_document" inherit_id="account.report_invoice_document">
+<!--        <xpath expr="//div[@id='qrcode']" position="after">-->
+        <xpath expr="//div[hasclass('page')]" position="inside">
+            <div class="row text-center mt-5" style="page-break-inside: avoid;">
+                <div class="col-6 mt-5">
+                    <div style="border-top: 1px solid black; width: 70%; margin: 0 auto;"/>
+                    <strong class="mt-2 d-block">Recibido por</strong>
+                </div>
+                <div class="col-6 mt-5">
+                    <div style="border-top: 1px solid black; width: 70%; margin: 0 auto;"/>
+                    <strong class="mt-2 d-block">Entregado por</strong>
+                </div>
+            </div>
+        </xpath>
+        <xpath expr="///div[hasclass('page')]//div[@id='payment_term']//p[@name='payment_communication']" position="attributes">
+            <attribute name="t-if">not is_l10n_do_invoice</attribute>
+        </xpath>
+    </template>
+</odoo>

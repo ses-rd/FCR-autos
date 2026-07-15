@@ -299,9 +299,10 @@ class ECFDocument(models.Model):
             )
 
         if not self.company_id.street or not len(str(self.company_id.street).strip()):
-            action = self.env.ref("base.action_res_company_form")
+            # action = self.env.ref("base.action_res_company_form")
             msg = _('Your company has not defined a street.')
-            raise RedirectWarning(msg, action.id, _("Go to Companies"))
+            raise UserError(msg)
+            # raise RedirectWarning(msg, action.id, _("Go to Companies"))
 
         invoice_date = self.invoice_id.invoice_date
         if self.company_id.l10n_do_dgii_start_date and invoice_date < self.company_id.l10n_do_dgii_start_date:
@@ -415,23 +416,12 @@ class ECFDocument(models.Model):
                 totals.set_TotalITBIS1(abs(currency.round(net_itbis_18) * rate))
             if tax_data["16_taxed_base"] and l10n_do_ncf_type != '46':
                 totals.set_TotalITBIS2(abs(currency.round(net_itbis_16) * rate))
-            # if total_taxed:
-            #     totals.set_TotalITBIS(abs(currency.round(total_itbis) * rate))
-            # if tax_data["18_taxed_base"] and l10n_do_ncf_type != '46':
-            #     totals.set_TotalITBIS1(abs(currency.round(tax_data["18_taxed_amount"]) * rate))
-            # if tax_data["16_taxed_base"] and l10n_do_ncf_type != '46':
-            #     totals.set_TotalITBIS2(abs(currency.round(tax_data["16_taxed_amount"]) * rate))
             if tax_data["0_taxed_base"]:
                 totals.set_TotalITBIS3(abs(currency.round(tax_data["0_taxed_amount"]) * rate))
         else:
             if tax_data["exempt_amount"]:
                 totals.set_MontoExento(abs(currency.round(tax_data["exempt_amount"]) * rate))
 
-        # if l10n_do_ncf_type not in ("43", "44", "45", "46", "47"):
-        #     if tax_data["itbis_withholding_amount"]:
-        #         totals.set_TotalITBISRetenido(abs(
-        #             currency.round(tax_data["itbis_withholding_amount"])
-        #         ) * rate)
         if l10n_do_ncf_type not in ("43", "44", "45", "46", "47"):
             if tax_data["itbis_withholding_amount"]:
                 totals.set_TotalITBISRetenido(itbis_withholding_amount)
@@ -745,7 +735,6 @@ class ECFDocument(models.Model):
                 item.set_UnidadMedida('43')
 
             # Tax Tip and Other
-            # taxes = line.tax_ids.filtered(lambda imp: imp.tax_group_id.l10n_do_billing_indicator == 'tips')
             taxes = line.tax_ids.filtered(lambda imp: imp.tax_group_id.l10n_do_billing_indicator in ['tips', 'other'])
             if taxes:
                 tabla_imp_ad = classdoc.ImpuestosAdicionales()
@@ -1413,7 +1402,7 @@ class ECFDocument(models.Model):
             """
         is_company_currency = self.is_company_currency()
 
-        def prepare_tax_tips_and_xml_amounts(totales_vals):
+        def prepare_tax_tips_and_additional_xml_amounts(totales_vals):
             do_ncf_type = self.ncf_type
             rate = 1
             if not is_company_currency:
@@ -1421,35 +1410,28 @@ class ECFDocument(models.Model):
                     round(1 / (self.invoice_id.amount_total / (self.invoice_id.amount_total_signed or 1) or 1), 4)
                 )
 
-            # Tax Tip
             tax_data = self.get_taxed_amount_data()
-            total_tax_tips = tax_data["tax_additional"]
-            if total_tax_tips and do_ncf_type not in ("41", "43", "46", "47"):
-                totals.set_MontoTotal(totals.get_MontoTotal() + total_tax_tips)
-                totals.set_MontoImpuestoAdicional(total_tax_tips * rate)
-                imp_ads = classdoc.ImpuestosAdicionales()
-                group_data = self._get_taxed_tips_data(cedoc.get_DetallesItems())
-                ia = classdoc.ImpuestoAdicional(TipoImpuesto=group_data["001"]['TipoImpuesto'],
-                                                TasaImpuestoAdicional=group_data["001"]['TasaImpuestoAdicional'],
-                                                OtrosImpuestosAdicionales=group_data["001"][
-                                                    'OtrosImpuestosAdicionales'],
-                                                )
-                imp_ads.add_ImpuestoAdicional(ia)
-                totals.set_ImpuestosAdicionales(imp_ads)
+            group_data = self._get_taxed_tips_data(cedoc.get_DetallesItems())
+            additional_amounts = (
+                ("tax_additional", "001"),
+                ("tax_additional_other", "005"),
+            )
 
-            tax_additional_other = tax_data["tax_additional_other"]
-            if tax_additional_other and do_ncf_type not in ("41", "43", "46", "47"):
-                totals.set_MontoTotal(totals.get_MontoTotal() + tax_additional_other)
-                totals.set_MontoImpuestoAdicional(tax_additional_other * rate)
-                imp_ads = classdoc.ImpuestosAdicionales()
-                group_data = self._get_taxed_tips_data(cedoc.get_DetallesItems())
-                ia = classdoc.ImpuestoAdicional(TipoImpuesto=group_data["005"]['TipoImpuesto'],
-                                                TasaImpuestoAdicional=group_data["005"]['TasaImpuestoAdicional'],
-                                                OtrosImpuestosAdicionales=group_data["005"][
-                                                    'OtrosImpuestosAdicionales'],
-                                                )
-                imp_ads.add_ImpuestoAdicional(ia)
-                totals.set_ImpuestosAdicionales(imp_ads)
+            for tax_field, group_key in additional_amounts:
+                additional_amount = tax_data[tax_field]
+                if additional_amount and do_ncf_type not in ("41", "43", "46", "47"):
+                    totals.set_MontoTotal(totals.get_MontoTotal() + additional_amount)
+                    totals.set_MontoImpuestoAdicional(additional_amount * rate)
+
+                    imp_ads = classdoc.ImpuestosAdicionales()
+                    group_value = group_data[group_key]
+                    ia = classdoc.ImpuestoAdicional(
+                        TipoImpuesto=group_value["TipoImpuesto"],
+                        TasaImpuestoAdicional=group_value["TasaImpuestoAdicional"],
+                        OtrosImpuestosAdicionales=group_value["OtrosImpuestosAdicionales"],
+                    )
+                    imp_ads.add_ImpuestoAdicional(ia)
+                    totals.set_ImpuestosAdicionales(imp_ads)
 
             if do_ncf_type not in ("43", "44", "47"):
                 self.xml_amount_tax = totales_vals.get_TotalITBIS()
@@ -1494,7 +1476,7 @@ class ECFDocument(models.Model):
             if self.invoice_id:
                 cedoc = self._gen_invoice(cedoc, classdoc)
 
-            prepare_tax_tips_and_xml_amounts(totals)
+            prepare_tax_tips_and_additional_xml_amounts(totals)
             if not is_company_currency:
                 other_currency = self._gen_other_currency(cedoc, encabezado, classdoc)
                 encabezado.set_OtraMoneda(other_currency)
@@ -1511,7 +1493,7 @@ class ECFDocument(models.Model):
             if self.invoice_id:
                 cedoc = self._gen_invoice(cedoc, classdoc)
 
-            prepare_tax_tips_and_xml_amounts(totals)
+            prepare_tax_tips_and_additional_xml_amounts(totals)
             if not is_company_currency:
                 other_currency = self._gen_other_currency(cedoc, encabezado, classdoc)
                 encabezado.set_OtraMoneda(other_currency)
@@ -1531,7 +1513,7 @@ class ECFDocument(models.Model):
 
             if self.invoice_id:
                 cedoc = self._gen_invoice(cedoc, classdoc)
-            prepare_tax_tips_and_xml_amounts(totals)
+            prepare_tax_tips_and_additional_xml_amounts(totals)
             if not is_company_currency:
                 other_currency = self._gen_other_currency(cedoc, encabezado, classdoc)
                 encabezado.set_OtraMoneda(other_currency)
