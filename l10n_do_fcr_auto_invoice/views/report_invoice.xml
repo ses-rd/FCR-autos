@@ -7,11 +7,11 @@
             <div class="row text-center mt-5" style="page-break-inside: avoid;">
                 <div class="col-6 mt-5">
                     <div style="border-top: 1px solid black; width: 70%; margin: 0 auto;"/>
-                    <strong class="mt-2 d-block">Preparado por</strong>
+                    <strong class="mt-2 d-block">Recibidopor</strong>
                 </div>
                 <div class="col-6 mt-5">
                     <div style="border-top: 1px solid black; width: 70%; margin: 0 auto;"/>
-                    <strong class="mt-2 d-block">Recibido por</strong>
+                    <strong class="mt-2 d-block">Entregado por</strong>
                 </div>
             </div>
         </xpath>
