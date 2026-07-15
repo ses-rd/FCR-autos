@@ -8,6 +8,7 @@
     'data': [
         'views/res_company_views.xml',
         'views/sale_order_view.xml',
+        'report/report_invoice.xml',
         'report/sale_order_report_templates.xml',
     ],
     'installable': True,
