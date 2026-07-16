@@ -115,7 +115,7 @@
                     <p class="m-0" t-esc="o.currency_id.name"/>
                     <t t-set="display_exchange" t-value="o.currency_id.name != 'DOP'"/>
                     <t t-if="display_exchange">
-                        (<span t-field="o.currency_rate"
+                        (<span t-field="o.currency_rate" name="l10n_do_currency_rate"
                                t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/>)
                     </t>
                 </div>
