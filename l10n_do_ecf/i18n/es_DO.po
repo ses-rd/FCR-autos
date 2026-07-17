@@ -952,6 +952,24 @@ msgid "Not Defined"
 msgstr "Sin definir"
 
 #. module: l10n_do_ecf
+#: model:ir.model.fields.selection,name:l10n_do_ecf.selection__account_move__l10n_do_ecf_payment_method__1
+#: model:ir.model.fields.selection,name:l10n_do_ecf.selection__res_partner__l10n_do_ecf_payment_method__1
+msgid "Cash"
+msgstr "Efectivo"
+
+#. module: l10n_do_ecf
+#: model:ir.model.fields.selection,name:l10n_do_ecf.selection__account_move__l10n_do_ecf_payment_method__2
+#: model:ir.model.fields.selection,name:l10n_do_ecf.selection__res_partner__l10n_do_ecf_payment_method__2
+msgid "Bank"
+msgstr "Banco"
+
+#. module: l10n_do_ecf
+#: model:ir.model.fields.selection,name:l10n_do_ecf.selection__account_move__l10n_do_ecf_payment_method__3
+#: model:ir.model.fields.selection,name:l10n_do_ecf.selection__res_partner__l10n_do_ecf_payment_method__3
+msgid "Card"
+msgstr "Tarjeta"
+
+#. module: l10n_do_ecf
 #: model:ir.model.fields.selection,name:l10n_do_ecf.selection__ecf_document__state_mail__not_mail
 msgid "Not Email"
 msgstr "Sin email"

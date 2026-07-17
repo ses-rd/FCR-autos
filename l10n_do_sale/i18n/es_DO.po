@@ -18,7 +18,7 @@ msgstr ""
 #. module: l10n_do_sale
 #: model:ir.model.fields.selection,name:l10n_do_sale.selection__sale_order__l10n_do_ecf_payment_method__2
 msgid "Bank"
-msgstr ""
+msgstr "Banco"
 
 #. module: l10n_do_sale
 #: model:ir.model.fields.selection,name:l10n_do_sale.selection__sale_order__l10n_do_ecf_payment_method__5
@@ -28,12 +28,12 @@ msgstr ""
 #. module: l10n_do_sale
 #: model:ir.model.fields.selection,name:l10n_do_sale.selection__sale_order__l10n_do_ecf_payment_method__3
 msgid "Card"
-msgstr ""
+msgstr "Tarjeta"
 
 #. module: l10n_do_sale
 #: model:ir.model.fields.selection,name:l10n_do_sale.selection__sale_order__l10n_do_ecf_payment_method__1
 msgid "Cash"
-msgstr ""
+msgstr "Efectivo"
 
 #. module: l10n_do_sale
 #: model:ir.model.fields.selection,name:l10n_do_sale.selection__sale_order__l10n_do_ecf_payment_method__4
