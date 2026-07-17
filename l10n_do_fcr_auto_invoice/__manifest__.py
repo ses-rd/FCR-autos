@@ -4,8 +4,7 @@
     "version": "19.0.1.0.0",
     "category": "Localization",
     "summary": "Fix layout of l10n_cr invoice report information block",
-    "author": "Nimetrix Costarica C.A.",
-    "maintainers": ["Juan C\u00f3rdoba <juan.cordoba@nimetrixcostarica.com>"],
+    "author": "SEGU",
     "license": "LGPL-3",
     "depends": [
         "l10n_do_ecf",
