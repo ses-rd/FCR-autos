@@ -22,7 +22,7 @@
 	"website" : "https://www.browseinfo.com/demo-request?app=sale_order_line_product_image&version=19&edition=Community",
     'depends': ['base', 'sale_management'],
 	'data': [
-		'report/sale_order_report.xml',
+		# 'report/sale_order_report.xml',
 		'views/view_sale_order.xml',
 	],
 	'post_init_hook': 'post_init_hook',
