@@ -46,7 +46,7 @@ msgstr "Asiento contable"
 #: model:ir.model.fields,field_description:fr_autos_manual_currency_exchange_rate.field_account_move__manual_currency_exchange_rate
 #: model:ir.model.fields,field_description:fr_autos_manual_currency_exchange_rate.field_sale_order__manual_currency_exchange_rate
 msgid "Manual Currency Exchange Rate"
-msgstr "Tipo de cambio manual"
+msgstr "Tasa de cambio del dia"
 
 #. module: fr_autos_manual_currency_exchange_rate
 #: model:ir.model,name:fr_autos_manual_currency_exchange_rate.model_sale_order
