@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="fr_autos_manual_currency_exchange_rate" inherit_id="account.report_invoice_document">
+        <xpath expr="//span[@name='l10n_do_currency_rate']" position="replace">
+            <span t-field="o.manual_currency_exchange_rate" name="l10n_do_currency_rate"
+                  t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/>)
+        </xpath>
+    </template>
+    <template id="document_tax_totals_company_currency_template_inherit"
+              inherit_id="account.document_tax_totals_company_currency_template">
+        <xpath expr="//div[hasclass('totals_taxes_company_currency')]" position="attributes">
+            <attribute name="t-if">not is_l10n_do_invoice</attribute>
+        </xpath>
+    </template>
+</odoo>
