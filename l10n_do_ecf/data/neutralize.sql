@@ -1,3 +1,3 @@
 -- update environment
 UPDATE ecf_settings
-   SET environment = 'TesteCF';
+   SET environment = 'TesteCF', name='TEST';

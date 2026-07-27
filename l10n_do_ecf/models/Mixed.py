@@ -5,7 +5,7 @@ class MixedLib:
 
     def __init__(self, document_id, ceconfig):
         self.document_id = document_id
-        self.partner_id = document_id.partner_id
+        # self.partner_id = document_id.partner_id
         self.invoice_id = self.document_id.invoice_id
         self.ceconfig = ceconfig
 
