@@ -12,9 +12,9 @@
                        invisible="purchase_tax_type != 'isr'"
                        required="purchase_tax_type == 'isr'"/>
             </field>
-            <field name="tax_scope" position="replace">
-                <field name="tax_scope" invisible="type_tax_use != 'purchase'"/>
-            </field>
+<!--            <field name="tax_scope" position="replace">-->
+<!--                <field name="tax_scope" invisible="type_tax_use != 'purchase'"/>-->
+<!--            </field>-->
         </field>
     </record>
 </odoo>

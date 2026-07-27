@@ -299,10 +299,8 @@ class ECFDocument(models.Model):
             )
 
         if not self.company_id.street or not len(str(self.company_id.street).strip()):
-            # action = self.env.ref("base.action_res_company_form")
             msg = _('Your company has not defined a street.')
             raise UserError(msg)
-            # raise RedirectWarning(msg, action.id, _("Go to Companies"))
 
         invoice_date = self.invoice_id.invoice_date
         if self.company_id.l10n_do_dgii_start_date and invoice_date < self.company_id.l10n_do_dgii_start_date:
@@ -357,8 +355,10 @@ class ECFDocument(models.Model):
             :return: object Total del tipo de documento.
             """
         self.ensure_one()
-        self.xml_amount_tax = self.invoice_id.amount_tax
-        self.xml_amount_total = self.invoice_id.amount_total
+        self.write({
+            'xml_amount_tax': self.invoice_id.amount_tax,
+            'xml_amount_total': self.invoice_id.amount_total,
+        })
         l10n_do_ncf_type = self.ncf_type
         tax_data = self.get_taxed_amount_data()
         total_taxed = sum(
@@ -678,6 +678,11 @@ class ECFDocument(models.Model):
                 MontoItem=abs((line.quantity * line.price_unit) * rate),
                 IndicadorFacturacion=get_invoicing_indicator(line),
             )
+
+            if l10n_do_ncf_type in ['46'] and str(item.get_IndicadorFacturacion()) not in ["0", "3"]:
+                raise ValidationError(
+                    'Los comprobantes tipo 46 solo permiten indicador de facturación tasa cero y no facturable (0: No Facturable, 3: ITBIS 3(0 %)).'
+                )
 
             if product_id and product_id.default_code:
                 table_code_item = classdoc.TablaCodigosItem()
@@ -1174,7 +1179,7 @@ class ECFDocument(models.Model):
         def validate_and_dpa():
             if self.partner_id.country_id == self.env.ref("base.do"):
                 if self.partner_id.state_id and not self.partner_id.state_id.ecf_code:
-                    raise ValidationError('La Provincia seleccionada no tiene codigo para DGII.')
+                    raise ValidationError('La provincia seleccionada no tiene codigo para DGII.')
                 if self.partner_id.res_municipality_id and not self.partner_id.res_municipality_id.ecf_code:
                     raise ValidationError('El municipio seleccionada no tiene codigo para DGII.')
 
@@ -2065,7 +2070,8 @@ class ECFDocument(models.Model):
         if self:
             documents = self
         else:
-            date_origen = datetime.now() - timedelta(days=max_dias)
+            # date_origen = datetime.now() - timedelta(days=max_dias)
+            date_origen = fields.Date.today() - timedelta(days=max_dias)
             documents = self.search([
                 ('create_date', '>=', date_origen),
                 ('l10n_do_ecf_send_state', 'in', ["delivered_accepted", "conditionally_accepted"]),
