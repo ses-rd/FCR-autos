@@ -228,17 +228,12 @@ class AccountMove(models.Model):
     def _get_l10n_latam_documents_domain(self):
         for p in self:
             if not p.partner_id.l10n_do_dgii_tax_payer_type:
-                logging.error(_(
+                raise ValidationError(
+                    _(
                         "A Type Of Taxpayers is Mandatory. "
                         "Please set the current Type of this contact"
-                    ))
-                return []
-                # raise ValidationError(
-                #     _(
-                #         "A Type Of Taxpayers is Mandatory. "
-                #         "Please set the current Type of this contact"
-                #     )
-                # )
+                    )
+                )
 
         self.ensure_one()
 
