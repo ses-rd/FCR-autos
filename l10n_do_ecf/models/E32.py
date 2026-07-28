@@ -1304,7 +1304,8 @@ class OtraMoneda(GeneratedsSuper):
     def __init__(self, TipoMoneda=None, TipoCambio=None, MontoGravadoTotalOtraMoneda=0.00, MontoGravado1OtraMoneda=0.00,
                  MontoGravado2OtraMoneda=0.00, MontoGravado3OtraMoneda=0.00, MontoExentoOtraMoneda=0.00,
                  TotalITBISOtraMoneda=0.00, TotalITBIS1OtraMoneda=0.00, TotalITBIS2OtraMoneda=0.00,
-                 TotalITBIS3OtraMoneda=0.00, MontoTotalOtraMoneda=None):
+                 TotalITBIS3OtraMoneda=0.00, MontoImpuestoAdicionalOtraMoneda=None, ImpuestosAdicionalesOtraMoneda=None,
+                 MontoTotalOtraMoneda=None):
         self.original_tagname_ = None
         self.TipoMoneda = TipoMoneda
         self.TipoCambio = TipoCambio
@@ -1317,6 +1318,8 @@ class OtraMoneda(GeneratedsSuper):
         self.TotalITBIS1OtraMoneda = TotalITBIS1OtraMoneda
         self.TotalITBIS2OtraMoneda = TotalITBIS2OtraMoneda
         self.TotalITBIS3OtraMoneda = TotalITBIS3OtraMoneda
+        self.MontoImpuestoAdicionalOtraMoneda = MontoImpuestoAdicionalOtraMoneda
+        self.ImpuestosAdicionalesOtraMoneda = ImpuestosAdicionalesOtraMoneda
         self.MontoTotalOtraMoneda = MontoTotalOtraMoneda
 
     def get_TipoMoneda(self):
@@ -1385,6 +1388,18 @@ class OtraMoneda(GeneratedsSuper):
     def set_TotalITBIS3OtraMoneda(self, TotalITBIS3OtraMoneda):
         self.TotalITBIS3OtraMoneda = TotalITBIS3OtraMoneda
 
+    def get_MontoImpuestoAdicionalOtraMoneda(self):
+        return self.MontoImpuestoAdicionalOtraMoneda
+
+    def set_MontoImpuestoAdicionalOtraMoneda(self, MontoImpuestoAdicionalOtraMoneda):
+        self.MontoImpuestoAdicionalOtraMoneda = MontoImpuestoAdicionalOtraMoneda
+
+    def get_ImpuestosAdicionalesOtraMoneda(self):
+        return self.ImpuestosAdicionalesOtraMoneda
+
+    def set_ImpuestosAdicionalesOtraMoneda(self, ImpuestosAdicionalesOtraMoneda):
+        self.ImpuestosAdicionalesOtraMoneda = ImpuestosAdicionalesOtraMoneda
+
     def get_MontoTotalOtraMoneda(self):
         return self.MontoTotalOtraMoneda
 
@@ -1404,6 +1419,8 @@ class OtraMoneda(GeneratedsSuper):
                 self.TotalITBIS1OtraMoneda is not None or
                 self.TotalITBIS2OtraMoneda is not None or
                 self.TotalITBIS3OtraMoneda is not None or
+                self.MontoImpuestoAdicionalOtraMoneda is not None or
+                self.ImpuestosAdicionalesOtraMoneda is not None or
                 self.MontoTotalOtraMoneda is not None
         ):
             return True
@@ -1487,6 +1504,15 @@ class OtraMoneda(GeneratedsSuper):
             showIndent(outfile, level, pretty_print)
             outfile.write(bytes(('<TotalITBIS3OtraMoneda>%s</TotalITBIS3OtraMoneda>%s' % (
                 self.gds_format_float(self.TotalITBIS3OtraMoneda, input_name='TotalITBIS3OtraMoneda'), eol_)).encode()))
+        if self.MontoImpuestoAdicionalOtraMoneda is not None:
+            showIndent(outfile, level, pretty_print)
+            outfile.write(bytes(('<MontoImpuestoAdicionalOtraMoneda>%s</MontoImpuestoAdicionalOtraMoneda>%s' % (
+                self.gds_format_float(self.MontoImpuestoAdicionalOtraMoneda,
+                                      input_name='Monto del Impuesto Adicional en Otra Moneda'), eol_)).encode()))
+        if self.ImpuestosAdicionalesOtraMoneda is not None:
+            self.ImpuestosAdicionalesOtraMoneda.export(outfile, level, namespace_,
+                                                       name_='ImpuestosAdicionalesOtraMoneda',
+                                                       pretty_print=pretty_print)
         if self.MontoTotalOtraMoneda is not None:
             showIndent(outfile, level, pretty_print)
             outfile.write(bytes(('<MontoTotalOtraMoneda>%s</MontoTotalOtraMoneda>%s' % (
