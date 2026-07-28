@@ -12,6 +12,7 @@
     "data": [
         "views/report_invoice.xml",
         "views/sale_order_report_templates.xml",
+        "views/account_move_views.xml",
     ],
     "installable": True,
 }

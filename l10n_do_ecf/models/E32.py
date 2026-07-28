@@ -1304,7 +1304,8 @@ class OtraMoneda(GeneratedsSuper):
     def __init__(self, TipoMoneda=None, TipoCambio=None, MontoGravadoTotalOtraMoneda=0.00, MontoGravado1OtraMoneda=0.00,
                  MontoGravado2OtraMoneda=0.00, MontoGravado3OtraMoneda=0.00, MontoExentoOtraMoneda=0.00,
                  TotalITBISOtraMoneda=0.00, TotalITBIS1OtraMoneda=0.00, TotalITBIS2OtraMoneda=0.00,
-                 TotalITBIS3OtraMoneda=0.00, MontoTotalOtraMoneda=None):
+                 TotalITBIS3OtraMoneda=0.00, MontoImpuestoAdicionalOtraMoneda=None, ImpuestosAdicionalesOtraMoneda=None,
+                 MontoTotalOtraMoneda=None):
         self.original_tagname_ = None
         self.TipoMoneda = TipoMoneda
         self.TipoCambio = TipoCambio
@@ -1317,6 +1318,8 @@ class OtraMoneda(GeneratedsSuper):
         self.TotalITBIS1OtraMoneda = TotalITBIS1OtraMoneda
         self.TotalITBIS2OtraMoneda = TotalITBIS2OtraMoneda
         self.TotalITBIS3OtraMoneda = TotalITBIS3OtraMoneda
+        self.MontoImpuestoAdicionalOtraMoneda = MontoImpuestoAdicionalOtraMoneda
+        self.ImpuestosAdicionalesOtraMoneda = ImpuestosAdicionalesOtraMoneda
         self.MontoTotalOtraMoneda = MontoTotalOtraMoneda
 
     def get_TipoMoneda(self):
@@ -1385,6 +1388,18 @@ class OtraMoneda(GeneratedsSuper):
     def set_TotalITBIS3OtraMoneda(self, TotalITBIS3OtraMoneda):
         self.TotalITBIS3OtraMoneda = TotalITBIS3OtraMoneda
 
+    def get_MontoImpuestoAdicionalOtraMoneda(self):
+        return self.MontoImpuestoAdicionalOtraMoneda
+
+    def set_MontoImpuestoAdicionalOtraMoneda(self, MontoImpuestoAdicionalOtraMoneda):
+        self.MontoImpuestoAdicionalOtraMoneda = MontoImpuestoAdicionalOtraMoneda
+
+    def get_ImpuestosAdicionalesOtraMoneda(self):
+        return self.ImpuestosAdicionalesOtraMoneda
+
+    def set_ImpuestosAdicionalesOtraMoneda(self, ImpuestosAdicionalesOtraMoneda):
+        self.ImpuestosAdicionalesOtraMoneda = ImpuestosAdicionalesOtraMoneda
+
     def get_MontoTotalOtraMoneda(self):
         return self.MontoTotalOtraMoneda
 
@@ -1404,6 +1419,8 @@ class OtraMoneda(GeneratedsSuper):
                 self.TotalITBIS1OtraMoneda is not None or
                 self.TotalITBIS2OtraMoneda is not None or
                 self.TotalITBIS3OtraMoneda is not None or
+                self.MontoImpuestoAdicionalOtraMoneda is not None or
+                self.ImpuestosAdicionalesOtraMoneda is not None or
                 self.MontoTotalOtraMoneda is not None
         ):
             return True
@@ -1487,6 +1504,15 @@ class OtraMoneda(GeneratedsSuper):
             showIndent(outfile, level, pretty_print)
             outfile.write(bytes(('<TotalITBIS3OtraMoneda>%s</TotalITBIS3OtraMoneda>%s' % (
                 self.gds_format_float(self.TotalITBIS3OtraMoneda, input_name='TotalITBIS3OtraMoneda'), eol_)).encode()))
+        if self.MontoImpuestoAdicionalOtraMoneda is not None:
+            showIndent(outfile, level, pretty_print)
+            outfile.write(bytes(('<MontoImpuestoAdicionalOtraMoneda>%s</MontoImpuestoAdicionalOtraMoneda>%s' % (
+                self.gds_format_float(self.MontoImpuestoAdicionalOtraMoneda,
+                                      input_name='Monto del Impuesto Adicional en Otra Moneda'), eol_)).encode()))
+        if self.ImpuestosAdicionalesOtraMoneda is not None:
+            self.ImpuestosAdicionalesOtraMoneda.export(outfile, level, namespace_,
+                                                       name_='ImpuestosAdicionalesOtraMoneda',
+                                                       pretty_print=pretty_print)
         if self.MontoTotalOtraMoneda is not None:
             showIndent(outfile, level, pretty_print)
             outfile.write(bytes(('<MontoTotalOtraMoneda>%s</MontoTotalOtraMoneda>%s' % (
@@ -1672,6 +1698,234 @@ class ImpuestoAdicional(GeneratedsSuper):
             outfile.write(bytes(('<OtrosImpuestosAdicionales>%s</OtrosImpuestosAdicionales>%s' % (
                 self.gds_format_float(self.OtrosImpuestosAdicionales, input_name='OtrosImpuestosAdicionales'),
                 eol_)).encode()))
+
+
+class ImpuestosAdicionalesOtraMoneda(GeneratedsSuper):
+    subclass = None
+    superclass = None
+
+    def __init__(self, ImpuestoAdicionalOtraMoneda=None):
+        self.original_tagname_ = None
+
+        if ImpuestoAdicionalOtraMoneda is None:
+            self.ImpuestoAdicionalOtraMoneda = []
+        else:
+            self.ImpuestoAdicionalOtraMoneda = ImpuestoAdicionalOtraMoneda
+
+    def factory(*args_, **kwargs_):
+        if CurrentSubclassModule_ is not None:
+            subclass = getSubclassFromModule_(
+                CurrentSubclassModule_, ImpuestosAdicionalesOtraMoneda)
+            if subclass is not None:
+                return subclass(*args_, **kwargs_)
+        if ImpuestosAdicionalesOtraMoneda.subclass:
+            return ImpuestosAdicionalesOtraMoneda.subclass(*args_, **kwargs_)
+        else:
+            return ImpuestosAdicionalesOtraMoneda(*args_, **kwargs_)
+
+    factory = staticmethod(factory)
+
+    def get_ImpuestoAdicionalOtraMoneda(self):
+        return self.ImpuestoAdicionalOtraMoneda
+
+    def set_ImpuestoAdicionalOtraMoneda(self, ImpuestoAdicionalOtraMoneda):
+        self.ImpuestoAdicionalOtraMoneda = ImpuestoAdicionalOtraMoneda
+
+    def add_ImpuestoAdicionalOtraMoneda(self, value):
+        self.ImpuestoAdicionalOtraMoneda.append(value)
+
+    def insert_ImpuestoAdicionalOtraMoneda_at(self, index, value):
+        self.ImpuestoAdicionalOtraMoneda.insert(index, value)
+
+    def replace_ImpuestoAdicional_at(self, index, value):
+        self.ImpuestoAdicionalOtraMoneda[index] = value
+
+    def hasContent_(self):
+        if (
+                self.ImpuestoAdicionalOtraMoneda is not None
+        ):
+            return True
+        else:
+            return False
+
+    def export(self, outfile, level, namespace_='', name_='ImpuestosAdicionalesOtraMoneda', namespacedef_='', pretty_print=True):
+        imported_ns_def_ = GenerateDSNamespaceDefs_.get('ImpuestosAdicionalesOtraMoneda')
+        if imported_ns_def_ is not None:
+            namespacedef_ = imported_ns_def_
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
+        if self.original_tagname_ is not None:
+            name_ = self.original_tagname_
+        showIndent(outfile, level, pretty_print)
+        outfile.write(bytes(('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '',)).encode()))
+
+        if self.hasContent_():
+            outfile.write(bytes(('>%s' % (eol_,)).encode()))
+            self.exportChildren(outfile, level + 1, namespace_='', name_='ImpuestosAdicionales',
+                                pretty_print=pretty_print)
+            showIndent(outfile, level, pretty_print)
+            outfile.write(bytes(('</%s%s>%s' % (namespace_, name_, eol_)).encode()))
+        else:
+            outfile.write(bytes(('/>%s' % (eol_,)).encode()))
+
+    def exportChildren(self, outfile, level, namespace_='', name_='DetalleServicioType', fromsubclass_=False,
+                       pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
+        for LineaImpAd in self.ImpuestoAdicionalOtraMoneda:
+            LineaImpAd.export(outfile, level, namespace_, name_='ImpuestoAdicionalOtraMoneda', pretty_print=pretty_print)
+
+    def build(self, node):
+        for child in node:
+            nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
+            self.buildChildren(child, node, nodeName_)
+        return self
+
+    def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
+        if nodeName_ == 'ImpuestoAdicionalOtraMoneda':
+            obj_ = ImpuestoAdicionalOtraMoneda.factory(None)
+            obj_.build(child_)
+            self.add_ImpuestoAdicional(obj_)
+
+
+class ImpuestoAdicionalOtraMoneda(GeneratedsSuper):
+    subclass = None
+    superclass = None
+
+    def __init__(self, TipoImpuestoOtraMoneda, TasaImpuestoAdicionalOtraMoneda=None, MontoImpuestoSelectivoConsumoEspecificoOtraMoneda=None,
+                 MontoImpuestoSelectivoConsumoAdvaloremOtraMoneda=None, OtrosImpuestosAdicionalesOtraMoneda=None):
+        self.original_tagname_ = None
+        self.TipoImpuestoOtraMoneda = TipoImpuestoOtraMoneda
+        self.TasaImpuestoAdicionalOtraMoneda = TasaImpuestoAdicionalOtraMoneda
+        self.MontoImpuestoSelectivoConsumoEspecificoOtraMoneda = MontoImpuestoSelectivoConsumoEspecificoOtraMoneda
+        self.MontoImpuestoSelectivoConsumoAdvaloremOtraMoneda = MontoImpuestoSelectivoConsumoAdvaloremOtraMoneda
+        self.OtrosImpuestosAdicionalesOtraMoneda = OtrosImpuestosAdicionalesOtraMoneda
+
+    def factory(*args_, **kwargs_):
+        if CurrentSubclassModule_ is not None:
+            subclass = getSubclassFromModule_(
+                CurrentSubclassModule_, ImpuestoAdicionalOtraMoneda)
+            if subclass is not None:
+                return subclass(*args_, **kwargs_)
+        if ImpuestoAdicionalOtraMoneda.subclass:
+            return ImpuestoAdicionalOtraMoneda.subclass(*args_, **kwargs_)
+        else:
+            return ImpuestoAdicionalOtraMoneda(*args_, **kwargs_)
+
+    factory = staticmethod(factory)
+
+    def get_TipoImpuestoOtraMoneda(self):
+        return self.TipoImpuestoOtraMoneda
+
+    def set_TipoImpuestoOtraMoneda(self, TipoImpuestoOtraMoneda):
+        self.TipoImpuestoOtraMoneda = TipoImpuestoOtraMoneda
+
+    def get_TasaImpuestoAdicionalOtraMoneda(self):
+        return self.TasaImpuestoAdicionalOtraMoneda
+
+    def set_TasaImpuestoAdicionalOtraMoneda(self, TasaImpuestoAdicionalOtraMoneda):
+        self.TasaImpuestoAdicionalOtraMoneda = TasaImpuestoAdicionalOtraMoneda
+
+    def get_MontoImpuestoSelectivoConsumoEspecificoOtraMoneda(self):
+        return self.MontoImpuestoSelectivoConsumoEspecificoOtraMoneda
+
+    def set_MontoImpuestoSelectivoConsumoEspecificoOtraMoneda(self, MontoImpuestoSelectivoConsumoEspecificoOtraMoneda):
+        self.MontoImpuestoSelectivoConsumoEspecificoOtraMoneda = MontoImpuestoSelectivoConsumoEspecificoOtraMoneda
+
+    def get_MontoImpuestoSelectivoConsumoAdvaloremOtraMoneda(self):
+        return self.MontoImpuestoSelectivoConsumoAdvaloremOtraMoneda
+
+    def set_MontoImpuestoSelectivoConsumoAdvaloremOtraMoneda(self, MontoImpuestoSelectivoConsumoAdvaloremOtraMoneda):
+        self.MontoImpuestoSelectivoConsumoAdvaloremOtraMoneda = MontoImpuestoSelectivoConsumoAdvaloremOtraMoneda
+
+    def get_OtrosImpuestosAdicionalesOtraMoneda(self):
+        return self.OtrosImpuestosAdicionalesOtraMoneda
+
+    def set_OtrosImpuestosAdicionalesOtraMoneda(self, OtrosImpuestosAdicionalesOtraMoneda):
+        self.OtrosImpuestosAdicionalesOtraMoneda = OtrosImpuestosAdicionalesOtraMoneda
+
+    def hasContent_(self):
+        if (
+                self.TipoImpuestoOtraMoneda is not None or
+                self.TasaImpuestoAdicionalOtraMoneda is not None or
+                self.MontoImpuestoSelectivoConsumoEspecificoOtraMoneda is not None or
+                self.MontoImpuestoSelectivoConsumoAdvaloremOtraMoneda is not None or
+                self.OtrosImpuestosAdicionalesOtraMoneda is not None
+        ):
+            return True
+        else:
+            return False
+
+    def export(self, outfile, level, namespace_='', name_='TipoImpuesto', namespacedef_='', pretty_print=True):
+        imported_ns_def_ = GenerateDSNamespaceDefs_.get('TipoImpuesto')
+        if imported_ns_def_ is not None:
+            namespacedef_ = imported_ns_def_
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
+        if self.original_tagname_ is not None:
+            name_ = self.original_tagname_
+        showIndent(outfile, level, pretty_print)
+        outfile.write(
+            bytes(('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '',)).encode()))
+
+        if self.hasContent_():
+            outfile.write(bytes(('>%s' % (eol_,)).encode()))
+            self.exportChildren(outfile, level + 1, namespace_='', name_='TipoImpuesto', pretty_print=pretty_print)
+            showIndent(outfile, level, pretty_print)
+            outfile.write(bytes(('</%s%s>%s' % (namespace_, name_, eol_)).encode()))
+        else:
+            outfile.write(bytes(('/>%s' % (eol_,)).encode()))
+
+    def exportChildren(self, outfile, level, namespace_='', name_='EmisorType', fromsubclass_=False,
+                       pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
+        if self.TipoImpuestoOtraMoneda is not None:
+            showIndent(outfile, level, pretty_print)
+            outfile.write(bytes(('<TipoImpuestoOtraMoneda>%s</TipoImpuestoOtraMoneda>%s' % (
+                self.gds_encode(
+                    self.gds_format_string(quote_xml(self.TipoImpuestoOtraMoneda), input_name='Código de Impuesto adicional en Otra Moneda')),
+                eol_)).encode()))
+        if self.TasaImpuestoAdicionalOtraMoneda is not None:
+            showIndent(outfile, level, pretty_print)
+            outfile.write(bytes(('<TasaImpuestoAdicionalOtraMoneda>%s</TasaImpuestoAdicionalOtraMoneda>%s' % (
+                self.gds_format_float(self.TasaImpuestoAdicionalOtraMoneda, input_name='Tasa de Impuesto adicional en Otra Moneda'), eol_)).encode()))
+        if self.MontoImpuestoSelectivoConsumoEspecificoOtraMoneda is not None:
+            showIndent(outfile, level, pretty_print)
+            outfile.write(
+                bytes(('<MontoImpuestoSelectivoConsumoEspecificoOtraMoneda>%s</MontoImpuestoSelectivoConsumoEspecificoOtraMoneda>%s' % (
+                    self.gds_encode(
+                        self.gds_format_string(quote_xml(self.MontoImpuestoSelectivoConsumoEspecificoOtraMoneda),
+                                               input_name='Monto Impuesto Selectivo al Consumo Específico en Otra Moneda')),
+                    eol_)).encode()))
+        if self.MontoImpuestoSelectivoConsumoAdvaloremOtraMoneda is not None:
+            showIndent(outfile, level, pretty_print)
+            outfile.write(bytes(('<MontoImpuestoSelectivoConsumoAdvaloremOtraMoneda>%s</MontoImpuestoSelectivoConsumoAdvaloremOtraMoneda>%s' % (
+                self.gds_format_float(self.MontoImpuestoSelectivoConsumoAdvaloremOtraMoneda, input_name='Monto Impuesto Selectivo al Consumo Ad Valorem en Otra Moneda'), eol_)).encode()))
+        if self.OtrosImpuestosAdicionalesOtraMoneda is not None:
+            showIndent(outfile, level, pretty_print)
+            outfile.write(bytes(('<OtrosImpuestosAdicionalesOtraMoneda>%s</OtrosImpuestosAdicionalesOtraMoneda>%s' % (
+                self.gds_format_float(self.OtrosImpuestosAdicionalesOtraMoneda, input_name='Monto Otros Impuestos Adicionales en Otra Moneda'), eol_)).encode()))
+
+    def build(self, node):
+        for child in node:
+            nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
+            self.buildChildren(child, node, nodeName_)
+        return self
+
+    def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
+        if nodeName_ == 'ipoImpuestoOtraMoneda':
+            self.set_TipoImpuestoOtraMoneda(child_.text)
+        # elif nodeName_ == 'CodigoItem':
+        #     self.set_CodigoItem(child_.text)
 
 
 class DetallesItems(GeneratedsSuper):

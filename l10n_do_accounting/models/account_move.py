@@ -174,9 +174,12 @@ class AccountMove(models.Model):
         for inv in self:
             if inv.is_invoice(include_receipts=False) and inv.country_code == "DO":
                 line_total_discount = sum(
-                    (line.quantity * line.price_unit - line.price_subtotal) for line in inv.invoice_line_ids)
-                discount_global = sum(line.price_unit for line in inv.invoice_line_ids if line.price_unit < 0)
-                total_discount = line_total_discount + abs(discount_global)
+                    (line.price_unit * line.quantity * line.discount / 100) for line in inv.invoice_line_ids)
+                total_discount = line_total_discount
+                # line_total_discount = sum(
+                #     (line.quantity * line.price_unit - line.price_subtotal) for line in inv.invoice_line_ids)
+                # discount_global = sum(line.price_unit for line in inv.invoice_line_ids if line.price_unit < 0)
+                # total_discount = line_total_discount + abs(discount_global)
                 inv.amount_discount = total_discount
 
     @api.depends("company_id", "company_id.l10n_do_ecf_issuer")
