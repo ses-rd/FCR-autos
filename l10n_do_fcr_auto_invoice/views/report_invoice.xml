@@ -20,7 +20,7 @@
                position="attributes">
             <attribute name="t-if">not is_l10n_do_invoice</attribute>
         </xpath>
-        
+
         <xpath expr="//table[@name='invoice_line_table']/thead/tr/th[@name='th_description']" position="before">
             <th name="th_color" class="text-center text-uppercase">COLOR</th>
         </xpath>
@@ -32,11 +32,5 @@
                 <span t-field="line.color"/>
             </td>
         </xpath>
-        <!--        <xpath expr="//table[@name='invoice_line_table']/thead/tr/th[@name='th_priceunit']" position="attributes">-->
-        <!--            <attribute name="t-if">False</attribute>-->
-        <!--        </xpath>-->
-        <!--        <xpath expr="//td[@name='td_taxes']" position="attributes">-->
-        <!--            <attribute name="t-if">False</attribute>-->
-        <!--        </xpath>-->
     </template>
 </odoo>
