@@ -18,10 +18,27 @@ class AccountMove(models.Model):
                     if not tax_groups:
                         continue
 
-                    tax_group_iva13 = self.env['account.tax.group'].search([('l10n_do_billing_indicator', 'in', ['taxable_itbis', 'taxable_isr', 'tips', 'other'])])
+                    tax_group_taxable = self.env['account.tax.group'].search([('l10n_do_billing_indicator', 'in', ['taxable_itbis', 'taxable_isr'])])
 
                     # for tax_group in tax_groups:
-                    for tax_group in list(filter(lambda m: m['id'] in tax_group_iva13.ids, tax_groups)):
+                    for tax_group in list(filter(lambda m: m['id'] in tax_group_taxable.ids, tax_groups)):
+                        tax_group_id = tax_group.get('id')
+                        involved_tax_ids = tax_group.get('involved_tax_ids', [])
+                        tax = self.env['account.tax'].search([('id', 'in', involved_tax_ids), ('tax_group_id', '=', tax_group_id)], limit=1)
+
+                        # base_name = f"Gravado {int(tax.amount)}%:"
+                        base_name = f"{tax.name}:"
+
+                        totals.append({
+                            'base_name': base_name,
+                            'base_amount': tax_group.get('base_amount', 0.0),
+                            'tax_amount': tax_group.get('tax_amount', 0.0)
+                        })
+
+                    tax_group_other = self.env['account.tax.group'].search(
+                        [('l10n_do_billing_indicator', 'in', ['tips', 'other'])],
+                        order='sequence asc')
+                    for tax_group in list(filter(lambda m: m['id'] in tax_group_other.ids, tax_groups)):
                         tax_group_id = tax_group.get('id')
                         involved_tax_ids = tax_group.get('involved_tax_ids', [])
                         tax = self.env['account.tax'].search([('id', 'in', involved_tax_ids), ('tax_group_id', '=', tax_group_id)], limit=1)
