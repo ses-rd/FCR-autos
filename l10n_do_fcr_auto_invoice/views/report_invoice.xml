@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <template id="l10n_do_fcr_auto_invoice_report_invoice_document" inherit_id="account.report_invoice_document">
+        <t t-set="display_taxes" position="replace">
+            <t t-set="display_taxes" t-value="False"/>
+        </t>
         <xpath expr="//div[hasclass('page')]" position="inside">
             <div class="row text-center mt-5" style="page-break-inside: avoid;">
                 <div class="col-6 mt-5">
