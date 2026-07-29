@@ -6,6 +6,21 @@ from odoo import models, api
 class AccountMove(models.Model):
     _inherit = 'account.move'
 
+    def _get_move_lines_to_report(self):
+        def show_line(line):
+            return (
+                (line.display_type == 'line_section'
+                    or (
+                            not any([line.parent_id.collapse_composition,
+                                     line.parent_id.parent_id.collapse_composition]) and
+                            not any([line.parent_id.collapse_prices, line.parent_id.parent_id.collapse_prices])
+                    )
+                 )
+                and not line.product_id.is_marbete
+            )
+
+        return self.invoice_line_ids.filtered(show_line).sorted('sequence')
+
     def _get_totals(self):
         for record in self:
             tax_totals = record.tax_totals
@@ -37,24 +52,26 @@ class AccountMove(models.Model):
             # totals.sort(key=lambda x: x.get('tax_amount', 0.0), reverse=True)
             return totals
 
-    # def _get_retention_totals(self):
-    #     for record in self:
-    #         tax_totals = record.tax_totals
-    #         totals = {"base_name": "IVA Retenido:", "tax_amount": 0.0}
-    #         if tax_totals.get('has_tax_groups', False):
-    #             subtotals = tax_totals['subtotals']
-    #             for subtotal in subtotals:
-    #                 tax_groups = subtotal.get('tax_groups', [])
-    #                 if not tax_groups:
-    #                     continue
-    #
-    #                 tax_withholding1 = self.env['account.tax.group'].search(
-    #                     [('l10n_sv_billing_indicator', '=', 'taxable')], limit=1)
-    #                 tax_withholding13 = self.env['account.tax.group'].search(
-    #                     [('l10n_sv_billing_indicator', '=', 'taxable13')], limit=1)
-    #
-    #                 # for tax_group in tax_groups:
-    #                 for tax_group in list(filter(lambda m: m['id'] in [tax_withholding1.id, tax_withholding13.id], tax_groups)):
-    #                     totals['tax_amount'] += abs(tax_group.get('tax_amount', 0.0))
-    #
-    #         return totals
+    def _get_other_totals(self):
+        for record in self:
+            other_totals = []
+            marbete_lines = record.invoice_line_ids.filtered(
+                lambda line: line.product_id and line.product_id.is_marbete
+            )
+            if not marbete_lines:
+                return other_totals
+
+            totals_by_product = {}
+            for line in marbete_lines:
+                product_name = line.product_id.display_name or line.name
+                amount = line.price_subtotal
+                if line.product_id.id in totals_by_product:
+                    totals_by_product[line.product_id.id]['other_amount'] += amount
+                else:
+                    totals_by_product[line.product_id.id] = {
+                        'other_name': product_name,
+                        'other_amount': amount,
+                    }
+
+            return list(totals_by_product.values())
+        return []
