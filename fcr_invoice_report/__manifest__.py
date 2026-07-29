@@ -1,5 +1,5 @@
 {
-    "name": "nx_lcr_invoice_report",
+    "name": "FCR - Incoice",
     "version": "19.0.1.0.0",
     "author": "SEGU",
     "category": "Accounting",
@@ -7,5 +7,7 @@
     "depends": ["l10n_do_ecf"],
     "data": [
         "views/report_invoice.xml",
+        "views/product_template_view.xml",
+        "views/account_move_views.xml",
     ],
 }

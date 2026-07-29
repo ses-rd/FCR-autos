@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <template id="l10n_do_fcr_auto_invoice_report_invoice_document" inherit_id="account.report_invoice_document">
-        <xpath expr="//t[@t-set='o']" position="after">
-            <t t-set="display_color"  t-value="any(l.color for l in o.invoice_line_ids)"/>
-       </xpath>
+
         <t t-set="display_taxes" position="replace">
             <t t-set="display_taxes" t-value="False"/>
         </t>
@@ -24,15 +22,5 @@
             <attribute name="t-if">not is_l10n_do_invoice</attribute>
         </xpath>
 
-        <xpath expr="//table[@name='invoice_line_table']/thead/tr/th[@name='th_description']" position="before">
-            <th t-if="display_color" name="th_color" class="text-center text-uppercase">COLOR</th>
-        </xpath>
-
-        <xpath expr="//table[@name='invoice_line_table']/tbody//t[@name='account_invoice_line_accountable']//td[@name='account_invoice_line_name']"
-               position="before">
-            <td name="td_color" t-if="display_color">
-                <span t-field="line.color"/>
-            </td>
-        </xpath>
     </template>
 </odoo>

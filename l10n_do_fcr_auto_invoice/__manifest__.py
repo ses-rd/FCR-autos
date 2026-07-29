@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 {
-    "name": "Patch l10n_cr_invoice - Invoice Report Information",
+    "name": "FCR - Invoice Report",
     "version": "19.0.1.0.0",
     "category": "Localization",
     "summary": "Fix layout of l10n_cr invoice report information block",
@@ -12,7 +12,7 @@
     "data": [
         "views/report_invoice.xml",
         "views/sale_order_report_templates.xml",
-        "views/account_move_views.xml",
+        # "views/account_move_views.xml",
     ],
     "installable": True,
 }
