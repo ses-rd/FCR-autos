@@ -1,0 +1,4 @@
+[submodule "l10n_do"]
+	path = l10n_do
+	url = git@github.com:ses-rd/l10n_do.git
+	branch = 19.0
