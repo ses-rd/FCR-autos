@@ -21,6 +21,5 @@
                position="attributes">
             <attribute name="t-if">not is_l10n_do_invoice</attribute>
         </xpath>
-
     </template>
 </odoo>

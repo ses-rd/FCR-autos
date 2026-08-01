@@ -22,9 +22,15 @@
                                                                                     t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
                             </td>
                         </tr>
-                        <tr t-foreach="o._get_other_totals()" t-as="other_total">
-                            <td class="table-title px-1 py-0 m-0"><b t-esc="other_total.get('other_name')"></b></td>
-                            <td class="px-1 py-0 m-0" style="text-align: right;"><t t-esc="other_total.get('other_amount')"
+                        <tr t-foreach="o._get_marbete_totals()" t-as="marbete_total">
+                            <td class="table-title px-1 py-0 m-0"><b t-esc="marbete_total.get('other_name')"></b></td>
+                            <td class="px-1 py-0 m-0" style="text-align: right;"><t t-esc="marbete_total.get('other_amount')"
+                                                                                    t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                            </td>
+                        </tr>
+                        <tr t-foreach="o._get_first_registration_totals()" t-as="first_total">
+                            <td class="table-title px-1 py-0 m-0"><b t-esc="first_total.get('other_name')"></b></td>
+                            <td class="px-1 py-0 m-0" style="text-align: right;"><t t-esc="first_total.get('other_amount')"
                                                                                     t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
                             </td>
                         </tr>
@@ -39,7 +45,6 @@
         <xpath expr="//table[@name='invoice_line_table']/thead/tr/th[@name='th_description']" position="before">
             <th t-if="display_color" name="th_color" class="text-center text-uppercase">COLOR</th>
         </xpath>
-
         <xpath expr="//table[@name='invoice_line_table']/tbody//t[@name='account_invoice_line_accountable']//td[@name='account_invoice_line_name']"
                position="before">
             <td name="td_color" t-if="display_color">

@@ -17,6 +17,7 @@ class AccountMove(models.Model):
                     )
                  )
                 and not line.product_id.is_marbete
+                and not line.product_id.is_first_registration
             )
 
         return self.invoice_line_ids.filtered(show_line).sorted('sequence')
@@ -33,10 +34,10 @@ class AccountMove(models.Model):
                     if not tax_groups:
                         continue
 
-                    tax_group_iva13 = self.env['account.tax.group'].search([('l10n_do_billing_indicator', 'in', ['taxable_itbis', 'taxable_isr', 'tips', 'other'])], order='sequence asc')
+                    tax_group_do = self.env['account.tax.group'].search([('l10n_do_billing_indicator', 'in', ['taxable_itbis', 'taxable_isr', 'tips', 'other'])], order='sequence asc')
 
                     # for tax_group in tax_groups:
-                    for tax_group in list(filter(lambda m: m['id'] in tax_group_iva13.ids, tax_groups)):
+                    for tax_group in list(filter(lambda m: m['id'] in tax_group_do.ids, tax_groups)):
                         tax_group_id = tax_group.get('id')
                         involved_tax_ids = tax_group.get('involved_tax_ids', [])
                         tax = self.env['account.tax'].search([('id', 'in', involved_tax_ids), ('tax_group_id', '=', tax_group_id)], limit=1)
@@ -52,7 +53,7 @@ class AccountMove(models.Model):
             # totals.sort(key=lambda x: x.get('tax_amount', 0.0), reverse=True)
             return totals
 
-    def _get_other_totals(self):
+    def _get_marbete_totals(self):
         for record in self:
             other_totals = []
             marbete_lines = record.invoice_line_ids.filtered(
@@ -74,4 +75,26 @@ class AccountMove(models.Model):
                     }
 
             return list(totals_by_product.values())
-        return []
+
+    def _get_first_registration_totals(self):
+        for record in self:
+            other_totals = []
+            marbete_lines = record.invoice_line_ids.filtered(
+                lambda line: line.product_id and line.product_id.is_first_registration
+            )
+            if not marbete_lines:
+                return other_totals
+
+            totals_by_product = {}
+            for line in marbete_lines:
+                product_name = line.product_id.display_name or line.name
+                amount = line.price_subtotal
+                if line.product_id.id in totals_by_product:
+                    totals_by_product[line.product_id.id]['other_amount'] += amount
+                else:
+                    totals_by_product[line.product_id.id] = {
+                        'other_name': product_name,
+                        'other_amount': amount,
+                    }
+
+            return list(totals_by_product.values())

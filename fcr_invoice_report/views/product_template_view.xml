@@ -9,6 +9,7 @@
                 <page string="FCR" name="fcr_auto">
                     <group>
                         <field name="is_marbete"/>
+                        <field name="is_first_registration"/>
                     </group>
                 </page>
             </xpath>
