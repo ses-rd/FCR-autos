@@ -8,3 +8,4 @@ class ProductTemplate(models.Model):
 
     is_marbete = fields.Boolean(string="Is Marbate Product")
     is_first_registration = fields.Boolean(string="Is First Registration")
+    is_co2 = fields.Boolean(string="Is CO2")

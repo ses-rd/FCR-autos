@@ -34,6 +34,12 @@
                                                                                     t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
                             </td>
                         </tr>
+                        <tr t-foreach="o._get_co2_totals()" t-as="co2_total">
+                            <td class="table-title px-1 py-0 m-0"><b t-esc="co2_total.get('other_name')"></b></td>
+                            <td class="px-1 py-0 m-0" style="text-align: right;"><t t-esc="co2_total.get('other_amount')"
+                                                                                    t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                            </td>
+                        </tr>
                         <tr>
                             <td class="table-title px-1 py-0 m-0"><b>Monto Total:</b></td>
                             <td class="px-1 py-0 m-0" style="text-align: right;"><span t-field="o.amount_total"/></td>

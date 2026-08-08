@@ -10,6 +10,7 @@
                     <group>
                         <field name="is_marbete"/>
                         <field name="is_first_registration"/>
+                        <field name="is_co2"/>
                     </group>
                 </page>
             </xpath>

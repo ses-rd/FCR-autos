@@ -18,6 +18,7 @@ class AccountMove(models.Model):
                  )
                 and not line.product_id.is_marbete
                 and not line.product_id.is_first_registration
+                and not line.product_id.is_co2
             )
 
         return self.invoice_line_ids.filtered(show_line).sorted('sequence')
@@ -87,6 +88,29 @@ class AccountMove(models.Model):
 
             totals_by_product = {}
             for line in marbete_lines:
+                product_name = line.product_id.display_name or line.name
+                amount = line.price_subtotal
+                if line.product_id.id in totals_by_product:
+                    totals_by_product[line.product_id.id]['other_amount'] += amount
+                else:
+                    totals_by_product[line.product_id.id] = {
+                        'other_name': product_name,
+                        'other_amount': amount,
+                    }
+
+            return list(totals_by_product.values())
+
+    def _get_co2_totals(self):
+        for record in self:
+            other_totals = []
+            co2_lines = record.invoice_line_ids.filtered(
+                lambda line: line.product_id and line.product_id.is_co2
+            )
+            if not co2_lines:
+                return other_totals
+
+            totals_by_product = {}
+            for line in co2_lines:
                 product_name = line.product_id.display_name or line.name
                 amount = line.price_subtotal
                 if line.product_id.id in totals_by_product:
