@@ -54,17 +54,17 @@ class AccountMove(models.Model):
             # totals.sort(key=lambda x: x.get('tax_amount', 0.0), reverse=True)
             return totals
 
-    def _get_marbete_totals(self):
+    def _get_co2_totals(self):
         for record in self:
             other_totals = []
-            marbete_lines = record.invoice_line_ids.filtered(
-                lambda line: line.product_id and line.product_id.is_marbete
+            co2_lines = record.invoice_line_ids.filtered(
+                lambda line: line.product_id and line.product_id.is_co2
             )
-            if not marbete_lines:
+            if not co2_lines:
                 return other_totals
 
             totals_by_product = {}
-            for line in marbete_lines:
+            for line in co2_lines:
                 product_name = line.product_id.display_name or line.name
                 amount = line.price_subtotal
                 if line.product_id.id in totals_by_product:
@@ -100,17 +100,17 @@ class AccountMove(models.Model):
 
             return list(totals_by_product.values())
 
-    def _get_co2_totals(self):
+    def _get_marbete_totals(self):
         for record in self:
             other_totals = []
-            co2_lines = record.invoice_line_ids.filtered(
-                lambda line: line.product_id and line.product_id.is_co2
+            marbete_lines = record.invoice_line_ids.filtered(
+                lambda line: line.product_id and line.product_id.is_marbete
             )
-            if not co2_lines:
+            if not marbete_lines:
                 return other_totals
 
             totals_by_product = {}
-            for line in co2_lines:
+            for line in marbete_lines:
                 product_name = line.product_id.display_name or line.name
                 amount = line.price_subtotal
                 if line.product_id.id in totals_by_product:
@@ -122,3 +122,4 @@ class AccountMove(models.Model):
                     }
 
             return list(totals_by_product.values())
+        
