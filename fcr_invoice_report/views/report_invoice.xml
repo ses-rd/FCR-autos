@@ -14,7 +14,10 @@
                         </tr>
                         <tr>
                             <td class="table-title px-1 py-0 m-0"><b>Sub-total:</b></td>
-                            <td class="px-1 py-0 m-0" style="text-align: right;"><span t-field="o.amount_untaxed"/></td>
+                            <t t-set="adjusted_subtotal" t-value="o.amount_untaxed - sum([c.get('other_amount', 0.0) for c in o._get_co2_totals()]) - sum([f.get('other_amount', 0.0) for f in o._get_first_registration_totals()]) - sum([m.get('other_amount', 0.0) for m in o._get_marbete_totals()])"/>
+
+<!--                            <td class="px-1 py-0 m-0" style="text-align: right;"><span t-field="o.amount_untaxed"/></td>-->
+                            <td class="px-1 py-0 m-0" style="text-align: right;"><span t-esc="adjusted_subtotal" t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/></td>
                         </tr>
                         <tr t-foreach="o._get_totals()" t-as="tax_total">
                             <td class="table-title px-1 py-0 m-0"><b t-esc="tax_total.get('base_name')"></b></td>
