@@ -122,4 +122,3 @@ class AccountMove(models.Model):
                     }
 
             return list(totals_by_product.values())
-        
