@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<template id="sale_report_inherit_id" inherit_id="sale.report_saleorder_document">
+		<xpath expr="//div[@id='total']" position="replace">
+			<div id="total" class="row mt-n3" name="total">
+				<div t-attf-class="#{'col-6' if report_type != 'html' else 'col-sm-7 col-md-6'} ms-auto">
+					<table id="order_totals" class="hidden-border" width="100%" style="float: right;">
+						<tr>
+							<td class="table-title px-1 py-0 m-0"><b>Sub-total:</b></td>
+							<t t-set="adjusted_subtotal" t-value="doc.amount_untaxed - sum([c.get('other_amount', 0.0) for c in doc._get_co2_totals()]) - sum([f.get('other_amount', 0.0) for f in doc._get_first_registration_totals()]) - sum([m.get('other_amount', 0.0) for m in doc._get_marbete_totals()])"/>
+							<td class="px-1 py-0 m-0" style="text-align: right;"><t t-esc="adjusted_subtotal" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/></td>
+						</tr>
+						<tr t-foreach="doc._get_totals()" t-as="tax_total">
+                            <td class="table-title px-1 py-0 m-0"><b t-esc="tax_total.get('base_name')"></b></td>
+                            <td class="px-1 py-0 m-0" style="text-align: right;"><t t-esc="tax_total.get('tax_amount')"
+                                                                                    t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+                            </td>
+                        </tr>
+						<tr t-foreach="doc._get_co2_totals()" t-as="co2_total">
+							<td class="table-title px-1 py-0 m-0"><b t-esc="co2_total.get('other_name')"></b></td>
+							<td class="px-1 py-0 m-0" style="text-align: right;"><t t-esc="co2_total.get('other_amount')" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+							</td>
+						</tr>
+						<tr t-foreach="doc._get_first_registration_totals()" t-as="first_total">
+							<td class="table-title px-1 py-0 m-0"><b t-esc="first_total.get('other_name')"></b></td>
+							<td class="px-1 py-0 m-0" style="text-align: right;"><t t-esc="first_total.get('other_amount')" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+							</td>
+						</tr>
+						<tr t-foreach="doc._get_marbete_totals()" t-as="marbete_total">
+							<td class="table-title px-1 py-0 m-0"><b t-esc="marbete_total.get('other_name')"></b></td>
+							<td class="px-1 py-0 m-0" style="text-align: right;"><t t-esc="marbete_total.get('other_amount')" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+							</td>
+						</tr>
+						<tr>
+							<td class="table-title px-1 py-0 m-0"><b>Monto Total:</b></td>
+							<td class="px-1 py-0 m-0" style="text-align: right;"><span t-field="doc.amount_total"/></td>
+						</tr>
+					</table>
+				</div>
+			</div>
+		</xpath>
+	</template>
+</odoo>
