@@ -1,27 +1,22 @@
 # -*- coding: utf-8 -*-
+from odoo import api, fields, models
 
-from odoo import models, api
 
+class SaleOrder(models.Model):
+    _inherit = "sale.order"
 
-class AccountMove(models.Model):
-    _inherit = 'account.move'
-
-    def _get_move_lines_to_report(self):
-        def show_line(line):
-            return (
-                (line.display_type == 'line_section'
-                    or (
-                            not any([line.parent_id.collapse_composition,
-                                     line.parent_id.parent_id.collapse_composition]) and
-                            not any([line.parent_id.collapse_prices, line.parent_id.parent_id.collapse_prices])
-                    )
-                 )
-                and not line.product_id.is_marbete
-                and not line.product_id.is_first_registration
-                and not line.product_id.is_co2
+    def _get_order_lines_to_report(self):
+        lines = super()._get_order_lines_to_report()
+        return lines.filtered(
+            lambda line: not (
+                line.product_id
+                and (
+                    line.product_id.is_marbete
+                    or line.product_id.is_first_registration
+                    or line.product_id.is_co2
+                )
             )
-
-        return self.invoice_line_ids.filtered(show_line).sorted('sequence')
+        )
 
     def _get_totals(self):
         for record in self:
@@ -56,7 +51,7 @@ class AccountMove(models.Model):
     def _get_co2_totals(self):
         for record in self:
             other_totals = []
-            co2_lines = record.invoice_line_ids.filtered(
+            co2_lines = record.order_line.filtered(
                 lambda line: line.product_id and line.product_id.is_co2
             )
             if not co2_lines:
@@ -79,14 +74,14 @@ class AccountMove(models.Model):
     def _get_first_registration_totals(self):
         for record in self:
             other_totals = []
-            marbete_lines = record.invoice_line_ids.filtered(
+            first_lines = record.order_line.filtered(
                 lambda line: line.product_id and line.product_id.is_first_registration
             )
-            if not marbete_lines:
+            if not first_lines:
                 return other_totals
 
             totals_by_product = {}
-            for line in marbete_lines:
+            for line in first_lines:
                 product_name = line.product_id.display_name or line.name
                 amount = line.price_subtotal
                 if line.product_id.id in totals_by_product:
@@ -102,7 +97,7 @@ class AccountMove(models.Model):
     def _get_marbete_totals(self):
         for record in self:
             other_totals = []
-            marbete_lines = record.invoice_line_ids.filtered(
+            marbete_lines = record.order_line.filtered(
                 lambda line: line.product_id and line.product_id.is_marbete
             )
             if not marbete_lines:
