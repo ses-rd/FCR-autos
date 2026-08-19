@@ -37,6 +37,16 @@
         <xpath expr="//div[@id='do_informations']" position="attributes">
             <attribute name="t-if">True</attribute>
         </xpath>
+        <xpath expr="//div[@id='do_informations']/div/h3/span[1]" position="after">
+            <t t-if="not is_l10n_do_invoice">
+                <span t-if="o.move_type == 'out_invoice' and o.state == 'posted'">
+                    <t name="invoice_title">Factura</t>
+                </span>
+                <span t-elif="o.move_type == 'out_refund' and o.state == 'posted'">
+                    <t name="credit_note_title">Nota de Credito</t>
+                </span>
+            </t>
+        </xpath>
         <xpath expr="//div[@id='l10n_do_invoice_information']" position="attributes">
             <attribute name="t-if">True</attribute>
         </xpath>
