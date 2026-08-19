@@ -21,7 +21,16 @@
         </xpath>
         <xpath expr="///div[hasclass('page')]//div[@id='payment_term']//p[@name='payment_communication']"
                position="attributes">
-            <attribute name="t-if">not is_l10n_do_invoice</attribute>
+            <attribute name="t-if">False</attribute>
+        </xpath>
+        <xpath expr="//div[@name='comment']" position="attributes">
+            <attribute name="t-if">False</attribute>
+        </xpath>
+        <xpath expr="//div[hasclass('page')]//div[@id='informations']/div[@name='invoice_date']" position="attributes">
+            <attribute name="t-if">False</attribute>
+        </xpath>
+        <xpath expr="//div[hasclass('page')]//div[@id='informations']/div[@name='due_date']" position="attributes">
+            <attribute name="t-if">False</attribute>
         </xpath>
     </template>
     <template id="l10n_do_fcr_auto_invoice_report_invoice_document1" inherit_id="l10n_do_accounting.l10n_do_report_invoice_document">
