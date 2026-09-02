@@ -3,7 +3,7 @@
     "name": "FCR - Invoice Report",
     "version": "19.0.1.0.0",
     "category": "Localization",
-    "summary": "Fix layout of l10n_cr invoice report information block",
+    "summary": "Fix layout of l10n_do_ecf invoice report information block",
     "author": "SEGU",
     "license": "LGPL-3",
     "depends": [
