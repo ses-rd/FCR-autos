@@ -48,7 +48,7 @@ class AccountMove(models.Model):
                         totals.append({
                             'base_name': base_name,
                             'base_amount': tax_group.get('base_amount', 0.0),
-                            'tax_amount': tax_group.get('tax_amount', 0.0)
+                            'tax_amount': tax_group.get('tax_amount_currency', 0.0)
                         })
             # totals.sort(key=lambda x: x.get('tax_amount', 0.0), reverse=True)
             return totals
