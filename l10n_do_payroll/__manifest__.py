@@ -20,6 +20,7 @@
         'data/salary_structure.xml',
         'data/salary_rules_categories.xml',
         'data/salary_rule_inputs.xml',
+        'data/hr_rule_parameters_data.xml',
         'data/salary_rules.xml',
         'security/ir.model.access.csv',
         'views/hr_contract_view.xml',
