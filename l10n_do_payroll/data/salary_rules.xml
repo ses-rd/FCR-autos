@@ -223,7 +223,8 @@ half_factor = 1.0 if weekly_mode else 0.5
 has_prior_same_month_payslip = payslip._l10n_do_has_previous_same_month_payslip()
 accumulated_period_base = payslip._l10n_do_get_accumulated_contribution_period_base()
 
-sfs = 0.0304
+#sfs = 0.0304
+sfs = payslip._rule_parameter('l10n_do_sfs') / 100
 cap_base = payslip._l10n_do_get_salary_cap('ars')
 cap_amount = cap_base * sfs
 last_SFS = payslip._l10n_do_get_previous_same_month_line_total('SFST', absolute=True) if has_prior_same_month_payslip else 0.0
@@ -284,7 +285,8 @@ weekly_mode = payslip.employee_id.deduction_calc_mode == 'period' and payslip.em
 half_factor = 1.0 if weekly_mode else 0.5
 has_prior_same_month_payslip = payslip._l10n_do_has_previous_same_month_payslip()
 accumulated_period_base = payslip._l10n_do_get_accumulated_contribution_period_base()
-afp = 0.0287
+#afp = 0.0287
+afp = payslip._rule_parameter('l10n_do_afp') / 100
 cap_base = payslip._l10n_do_get_salary_cap('afp')
 cap_amount = cap_base * afp
 
