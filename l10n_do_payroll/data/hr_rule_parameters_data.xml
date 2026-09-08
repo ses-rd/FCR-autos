@@ -14,7 +14,7 @@
         </record>
         <record id="l10n_do_rule_parameter_afp" model="hr.rule.parameter">
             <field name="name">AFP Value (%)</field>
-                <field name="code">l10n_do_afp</field>
+            <field name="code">l10n_do_afp</field>
             <field name="country_id" ref="base.do"/>
         </record>
         <record id="l10n_do_rule_parameter_afp_value_2026" model="hr.rule.parameter.value">

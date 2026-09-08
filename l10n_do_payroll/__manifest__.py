@@ -2,18 +2,19 @@
 {
     'name': "Dominican Payroll",
     'summary': """HHRR modules to the dominican standard""",
-    'author': "Adel Networks S.R.L",
-    "website": "https://adelnetworks.com.do",
+    'author': 'SEGU',
     'license': 'LGPL-3',
     'category': 'Localization/Payroll',
     'version': '19.0.1.0.0',
-    'depends': ['base',
-                'hr',
-                'hr_holidays',
-                'hr_payroll',
-                'hr_payroll_account',
-                'contacts',
-                'account'],
+    'depends': [
+        'base',
+        'hr',
+        'hr_holidays',
+        'hr_payroll',
+        'hr_payroll_account',
+        'contacts',
+        'account',
+     ],
     'data': [
         'data/res_partner.xml',
         'data/contribution_registers.xml',
@@ -40,6 +41,6 @@
         'wizard/ministry_of_labour_report_wizard_view.xml',
     ],
     'external_dependencies': {
-      'python': ['xlsxwriter', 'numpy', 'dateutil', 'numpy-financial']
+        'python': ['xlsxwriter', 'numpy', 'dateutil', 'numpy-financial']
     },
 }
