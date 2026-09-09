@@ -3,7 +3,7 @@
     <template id="company_seal" inherit_id="account.report_invoice_document">
         <xpath expr="//div[hasclass('page')]" position="inside">
             <t t-if="o.company_id.seal">
-                <div style="text-align: left; margin-top: 10px;">
+                <div style="text-align: left; margin-top: 10px;" class="mt-2">
                     <img t-att-src="'data:image/png;base64,' + (o.company_id.seal.decode('utf-8') if isinstance(o.company_id.seal, bytes) else o.company_id.seal)" style="max-width: 300px; max-height: 300px;"/>
                 </div>
             </t>
