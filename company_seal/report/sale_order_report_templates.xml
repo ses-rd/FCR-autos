@@ -5,7 +5,7 @@
 <!--                <div style="text-align: left; margin-top: 10px;">-->
 <!--                    <img t-att-src="'data:image/png;base64,' + (doc.company_id.seal.decode('utf-8') if isinstance(doc.company_id.seal, bytes) else doc.company_id.seal)" style="max-width: 300px; max-height: 300px;"/>-->
 <!--                </div>-->
-                <div class="row text-center">
+                <div class="row text-center mt-2">
                     <div class="col-6">
                         <img t-att-src="'data:image/png;base64,' + (doc.company_id.seal.decode('utf-8') if isinstance(doc.company_id.seal, bytes) else doc.company_id.seal)" style="max-width: 300px; max-height: 300px;"/>
                     </div>
