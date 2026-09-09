@@ -1,12 +1,12 @@
 <odoo>
     <template id="report_saleorder_document_inherit_signature" inherit_id="sale.report_saleorder_document">
         <xpath expr="//div[hasclass('page')]" position="inside">
-            <div class="row text-center mt-5" style="page-break-inside: avoid;">
-                <div class="col-6 mt-2">
+            <div class="row text-center mt-4" style="page-break-inside: avoid;">
+                <div class="col-6 mt-3">
                     <div style="border-top: 1px solid black; width: 70%; margin: 0 auto;"/>
                     <strong class="mt-2 d-block">Preparado por</strong>
                 </div>
-                <div class="col-6 mt-2">
+                <div class="col-6 mt-3">
                     <div style="border-top: 1px solid black; width: 70%; margin: 0 auto;"/>
                     <strong class="mt-2 d-block">Recibido por</strong>
                 </div>
