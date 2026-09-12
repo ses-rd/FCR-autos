@@ -224,8 +224,10 @@ class HrPayslip(models.Model):
 
     def _l10n_do_get_current_scisr_base(self, gross_base=0.0, extra_hours=0.0, incentives=0.0, commissions=0.0):
         self.ensure_one()
-        afp = 0.0287
-        sfs = 0.0304
+        # afp = 0.0287
+        afp = self._rule_parameter('l10n_do_afp') / 100
+        # sfs = 0.0304
+        sfs = self._rule_parameter('l10n_do_sfs') / 100
         taxable_gross = gross_base or 0.0
         additional_per_capita = self._l10n_do_get_additional_per_capita_payment()
 
