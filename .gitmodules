@@ -8,7 +8,7 @@
 	url = git@github.com:NB5055/respondio_crm_bridge.git
 	branch = 19.0
 
-[submodule "l10n_do_payroll"]
-	path = l10n_do_payroll
+[submodule "ses-rd/l10n_do_payroll"]
+	path = ses-rd/l10n_do_payroll
 	url = git@github.com:ses-rd/l10n_do_payroll.git
 	branch = 19.0
