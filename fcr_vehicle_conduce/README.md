@@ -32,12 +32,24 @@ con `picking.sale_id`. El vehículo se obtiene exclusivamente de
 los productos de toda la orden de venta. Los movimientos del vehículo deben tener
 líneas de venta del mismo producto y de esa venta.
 
-Se rechazan: ausencia de vehículo, múltiples vehículos, productos `is_fleet` sin
-vehículo, varios productos para el mismo vehículo, enlaces de retorno contradictorios,
-vehículo archivado y diferencias de compañía. Los productos accesorios sin indicador
+Se rechazan: ausencia de vehículo, múltiples vehículos distintos, productos `is_fleet`
+sin vehículo y diferencias explícitas de compañía. Los productos accesorios sin indicador
 Fleet ni vehículo no cuentan como vehículos. No se buscan vehículos adicionales
-por nombre, placa, chasis o enlaces inversos. Los enlaces de retorno vacíos se toleran;
-si están informados, deben coincidir. No se impone unicidad global al módulo Fleet.
+por nombre, placa, chasis o enlaces inversos. No se impone unicidad global al módulo Fleet.
+
+La revisión distingue estas condiciones:
+
+| Clase | Regla y motivo |
+| --- | --- |
+| A: identificación necesaria | Un único vehículo distinto mediante los productos movidos; una venta real única mediante sus líneas. |
+| B: inconsistencia bloqueante | Producto marcado `is_fleet` sin vínculo (podría ocultar otro vehículo), diferencias de compañía y línea de venta de un producto distinto al movido. |
+| C: dato histórico tolerado | Vehículo archivado, `is_fleet=False` con vínculo válido, varios productos que apuntan al mismo vehículo y enlaces inversos de Fleet vacíos o desactualizados. |
+
+`fleet.vehicle.product_id` y `product_tmpl_id` son campos independientes que el módulo
+existente no sincroniza automáticamente. No reemplazan ni invalidan por sí solos el vínculo
+desde `product.template.vehicle_id`. Archivado no significa inexistente y no debe impedir
+reimprimir. Una compañía vacía en el vehículo se admite como vehículo compartido; una
+compañía diferente se rechaza. Se mantienen los permisos normales, sin `sudo()`.
 
 ## Mapeo y decisiones
 
@@ -57,6 +69,7 @@ La regla de fecha está encapsulada en `_get_vehicle_conduce_date()`. Una fecha 
 produce error. Se convierte a la zona horaria del usuario/contexto y se presenta como
 `dd/MM/yyyy`. No se utiliza la fecha actual como sustituto.
 Los datos personales ausentes se dejan vacíos; no se mezclan con los del contacto padre.
+La selección provisional de Tipo se encapsula en `_get_vehicle_conduce_type(vehicle)`.
 
 El reporte consulta valores actuales: no guarda una fotografía histórica de los datos,
 no congela el odómetro y no reutiliza PDFs previamente adjuntados. Imprimir no cambia
@@ -69,10 +82,16 @@ de 10 mm y laterales de 12 mm. Contenido de 164 mm de ancho. Fondo blanco y tint
 oscura para impresión; el fondo oscuro de la captura se interpreta como modo de
 visualización. Se reorganizan los datos del vehículo en tres renglones para dejar
 espacio a un VIN completo y nombres reales. No se reproducen las X rojas de ejemplo.
+Los datos corporativos vacíos se omiten. VIN y correos admiten cortes de palabras largas.
+Cada documento tiene su propio artículo y salto de página entre transferencias. No se
+recortan datos con `overflow: hidden`: textos arbitrariamente extensos pueden exigir
+más de una página; comprobar los casos reales en el motor PDF de Odoo.sh.
 
 El registro específico de `report.paperformat` usa `format = Letter`: Odoo 19 almacena
 `page_width` y `page_height` personalizados como enteros, por lo que introducir 215.9
 y 279.4 allí truncaría las dimensiones. El formato Letter conserva el tamaño exacto.
+Se desactiva `smart shrinking` para respetar las medidas CSS en milímetros y evitar
+que wkhtmltopdf reduzca silenciosamente todo el documento.
 
 `static/src/img/vehicle_inspection.png` es un recorte exacto, sin redibujado,
 de la segunda imagen suministrada (Conduce de Salida, 842 × 1079 píxeles):
