@@ -31,6 +31,8 @@ class TestVehicleConduce(TransactionCase):
         cls.category = cls.env['fleet.vehicle.model.category'].create({'name': 'Camioneta'})
         cls.report = cls.env.ref('fcr_vehicle_conduce.action_report_vehicle_conduce_outgoing')
         cls.report_model = cls.env['report.fcr_vehicle_conduce.report_vehicle_conduce_outgoing']
+        cls.incoming_report = cls.env.ref('fcr_vehicle_conduce.action_report_vehicle_conduce_incoming')
+        cls.incoming_report_model = cls.env['report.fcr_vehicle_conduce.report_vehicle_conduce_incoming']
 
     def _vehicle_product(self):
         vehicle = self.env['fleet.vehicle'].create({
@@ -71,6 +73,34 @@ class TestVehicleConduce(TransactionCase):
             'location_dest_id': picking.location_dest_id.id,
             'sale_line_id': line.id if line else False, 'state': state,
         })
+
+    def _purchase_picking(self, products=None, vendor=None):
+        products = products or [self._vehicle_product()[0]]
+        vendor = vendor or self.env['res.partner'].create({
+            'name': 'Conduce test vendor',
+            'phone': '809-555-0200',
+            'email': 'vendor@example.test',
+            'vat': '101010101',
+        })
+        purchase = self.env['purchase.order'].create({
+            'partner_id': vendor.id,
+            'picking_type_id': self.warehouse.in_type_id.id,
+            'company_id': self.env.company.id,
+        })
+        for product in products:
+            self.env['purchase.order.line'].create({
+                'order_id': purchase.id,
+                'product_id': product.id,
+                'product_qty': 1,
+                'product_uom_id': product.uom_id.id,
+                'price_unit': 1,
+                'date_planned': datetime(2026, 6, 28, 16, 0),
+            })
+        purchase.button_confirm()
+        picking = purchase.picking_ids.filtered(lambda p: p.picking_type_code == 'incoming')[:1]
+        picking.scheduled_date = datetime(2026, 6, 28, 16, 0)
+        picking.move_ids.state = 'assigned'
+        return picking, purchase, vendor
 
     def test_ready_delivery_contact_vehicle_and_scheduled_date(self):
         product, vehicle = self._vehicle_product()
@@ -240,6 +270,121 @@ class TestVehicleConduce(TransactionCase):
         with self.assertRaisesRegex(UserError, 'fecha efectiva'):
             picking._get_vehicle_conduce_outgoing_values()
 
+    def test_ready_receipt_contact_vehicle_purchase_and_scheduled_date(self):
+        product, vehicle = self._vehicle_product()
+        picking, purchase, vendor = self._purchase_picking([product])
+        values = picking.with_context(tz='America/Santo_Domingo')._get_vehicle_conduce_incoming_values()
+        self.assertEqual(values['purchase'], purchase)
+        self.assertEqual(values['partner'], vendor)
+        self.assertEqual(values['vehicle'], vehicle)
+        self.assertEqual(values['date'], '28/06/2026')
+        self.assertEqual(values['partner_label'], 'Recibido a')
+        self.assertEqual(values['concept'], 'Adquisición FCR')
+
+    def test_incoming_contact_fallback_and_empty_fields(self):
+        picking, purchase, vendor = self._purchase_picking()
+        picking.partner_id = False
+        vendor.write({'phone': False, 'email': False, 'vat': False})
+        values = picking._get_vehicle_conduce_incoming_values()
+        self.assertEqual(values['partner'], purchase.partner_id)
+        html, _kind = self.env['ir.actions.report']._render_qweb_html(
+            self.incoming_report.report_name, picking.ids,
+        )
+        text = html_parser.fromstring(html).text_content()
+        self.assertIn(vendor.name, text)
+        self.assertIn('Adquisición FCR', text)
+
+    def test_origin_does_not_establish_purchase(self):
+        product = self._vehicle_product()[0]
+        picking = self.env['stock.picking'].create({
+            'picking_type_id': self.warehouse.in_type_id.id,
+            'partner_id': self.customer.id,
+            'location_id': self.env.ref('stock.stock_location_suppliers').id,
+            'location_dest_id': self.warehouse.lot_stock_id.id,
+        })
+        self._move(picking, product)
+        picking.origin = 'P00001'
+        picking.scheduled_date = datetime(2026, 6, 28, 16, 0)
+        with self.assertRaisesRegex(UserError, 'compra'):
+            picking._get_vehicle_conduce_incoming_values()
+
+    def test_outgoing_rejected_by_incoming_and_incoming_rejected_by_outgoing(self):
+        outgoing, _sale = self._picking()
+        incoming, _purchase, _vendor = self._purchase_picking()
+        with self.assertRaisesRegex(UserError, 'operaciones de entrada'):
+            outgoing._get_vehicle_conduce_incoming_values()
+        with self.assertRaisesRegex(UserError, 'operaciones de salida'):
+            incoming._get_vehicle_conduce_outgoing_values()
+
+    def test_incoming_not_ready_rejected(self):
+        picking, _purchase, _vendor = self._purchase_picking()
+        picking.move_ids.state = 'confirmed'
+        with self.assertRaisesRegex(UserError, 'Lista o Hecha'):
+            picking._get_vehicle_conduce_incoming_values()
+
+    def test_incoming_missing_vehicle_rejected(self):
+        product = self.env['product.product'].create({'name': 'Receipt accessory only', 'type': 'consu'})
+        picking, _purchase, _vendor = self._purchase_picking([product])
+        with self.assertRaisesRegex(UserError, 'No hay un vehículo'):
+            picking._get_vehicle_conduce_incoming_values()
+        product.is_fleet = True
+        with self.assertRaisesRegex(UserError, 'sin vínculo'):
+            picking._get_vehicle_conduce_incoming_values()
+
+    def test_incoming_multiple_vehicles_rejected(self):
+        first = self._vehicle_product()[0]
+        second = self._vehicle_product()[0]
+        picking, _purchase, _vendor = self._purchase_picking([first, second])
+        with self.assertRaisesRegex(UserError, 'varios vehículos'):
+            picking._get_vehicle_conduce_incoming_values()
+
+    def test_incoming_accessory_does_not_count_as_vehicle(self):
+        vehicle_product, vehicle = self._vehicle_product()
+        accessory = self.env['product.product'].create({'name': 'Receipt accessory', 'type': 'consu'})
+        picking, _purchase, _vendor = self._purchase_picking([vehicle_product, accessory])
+        self.assertEqual(picking._get_vehicle_conduce_incoming_values()['vehicle'], vehicle)
+        accessory.is_fleet = True
+        with self.assertRaisesRegex(UserError, 'sin vínculo'):
+            picking._get_vehicle_conduce_incoming_values()
+
+    def test_incoming_done_date_and_timezone(self):
+        picking, _purchase, _vendor = self._purchase_picking()
+        picking.move_ids.write({'quantity': 1, 'state': 'done'})
+        picking.date_done = datetime(2026, 7, 2, 1, 0)
+        values = picking.with_context(tz='America/Santo_Domingo')._get_vehicle_conduce_incoming_values()
+        self.assertEqual(values['date'], '01/07/2026')
+        picking.date_done = False
+        with self.assertRaisesRegex(UserError, 'fecha efectiva'):
+            picking._get_vehicle_conduce_incoming_values()
+
+    def test_incoming_qweb_html_and_escaping(self):
+        picking, _purchase, vendor = self._purchase_picking()
+        vendor.name = '<script>alert("entrada")</script> Proveedor & Asociados'
+        vehicle = picking.move_ids.product_id.product_tmpl_id.vehicle_id
+        vehicle.vin_sn = 'INVIN' + '1234567890' * 4
+        html, _kind = self.env['ir.actions.report']._render_qweb_html(
+            self.incoming_report.report_name, picking.ids,
+        )
+        html_text = html.decode()
+        document = html_parser.fromstring(html_text)
+        content = document.xpath('//div[contains(@class, "fcr-content")]')[0]
+        self.assertIn('CONDUCE DE ENTRADA', html_text)
+        self.assertIn('vehicle_inspection.png', html_text)
+        self.assertIn('Acogiéndome', html_text)
+        self.assertFalse(content.xpath('.//script'))
+        self.assertIn(vendor.name, content.text_content())
+        self.assertIn(vehicle.vin_sn, content.text_content())
+
+    def test_incoming_report_rejects_mixed_batch_and_missing_ids(self):
+        valid, _purchase, _vendor = self._purchase_picking()
+        invalid, _sale = self._picking()
+        with self.assertRaises(UserError):
+            self.incoming_report_model._get_report_values((valid | invalid).ids)
+        with self.assertRaises(UserError):
+            self.incoming_report_model._get_report_values([])
+        documents = self.incoming_report_model._get_report_values([valid.id, valid.id])
+        self.assertEqual(len(documents['conduce_documents']), 1)
+
     def test_report_rejects_mixed_batch_and_missing_ids(self):
         valid, _sale = self._picking()
         invalid, _sale = self._picking(linked=False)
@@ -259,17 +404,31 @@ class TestVehicleConduce(TransactionCase):
         self.assertIn(self.report.id, self.report.get_valid_action_reports('stock.picking', picking.ids))
         picking.move_ids.state = 'cancel'
         self.assertNotIn(self.report.id, self.report.get_valid_action_reports('stock.picking', picking.ids))
+        receipt, _purchase, _vendor = self._purchase_picking()
+        self.assertIn(
+            self.incoming_report.id,
+            self.incoming_report.get_valid_action_reports('stock.picking', receipt.ids),
+        )
+        receipt.move_ids.state = 'cancel'
+        self.assertNotIn(
+            self.incoming_report.id,
+            self.incoming_report.get_valid_action_reports('stock.picking', receipt.ids),
+        )
         self.assertEqual(self.report.paperformat_id.format, 'Letter')
+        self.assertEqual(self.incoming_report.paperformat_id, self.report.paperformat_id)
         self.assertAlmostEqual(self.report.paperformat_id.print_page_width, 215.9)
         self.assertAlmostEqual(self.report.paperformat_id.print_page_height, 279.4)
 
     def test_report_binding_and_standard_reports_are_independent(self):
-        self.assertEqual(self.report.model, 'stock.picking')
-        self.assertEqual(self.report.binding_model_id.model, 'stock.picking')
-        self.assertEqual(self.report.binding_type, 'report')
-        self.assertEqual(set(self.report.binding_view_types.split(',')), {'list', 'form'})
+        for report in (self.report, self.incoming_report):
+            with self.subTest(report=report.name):
+                self.assertEqual(report.model, 'stock.picking')
+                self.assertEqual(report.binding_model_id.model, 'stock.picking')
+                self.assertEqual(report.binding_type, 'report')
+                self.assertEqual(set(report.binding_view_types.split(',')), {'list', 'form'})
         bindings = self.env['ir.actions.actions'].get_bindings('stock.picking')['report']
         self.assertIn(self.report.id, [action['id'] for action in bindings])
+        self.assertIn(self.incoming_report.id, [action['id'] for action in bindings])
         for xmlid, template in (
             ('stock.action_report_delivery', 'stock.report_deliveryslip'),
             ('stock.action_report_picking', 'stock.report_picking'),
@@ -286,23 +445,72 @@ class TestVehicleConduce(TransactionCase):
             view_id=self.env.ref('stock.view_picking_form').id, view_type='form',
         )
         form = html_parser.fromstring(view['arch'])
-        buttons = form.xpath('//header/button[@name="%s"]' % self.report.id)
-        self.assertEqual(len(buttons), 1)
-        self.assertEqual(buttons[0].get('type'), 'action')
+        outgoing_buttons = form.xpath('//header/button[@name="%s"]' % self.report.id)
+        incoming_buttons = form.xpath('//header/button[@name="%s"]' % self.incoming_report.id)
+        self.assertEqual(len(outgoing_buttons), 1)
+        self.assertEqual(len(incoming_buttons), 1)
+        self.assertEqual(outgoing_buttons[0].get('type'), 'action')
+        self.assertEqual(incoming_buttons[0].get('type'), 'action')
         self.assertTrue(form.xpath('//field[@name="sale_id"]'))
+        self.assertTrue(form.xpath('//field[@name="purchase_id"]'))
         # Both standard Print buttons must remain present and keep their targets.
         self.assertTrue(form.xpath('//header/button[@name="do_print_picking"][@type="object"]'))
         standard_id = self.env.ref('stock.action_report_delivery').id
         self.assertTrue(form.xpath('//header/button[@name="%s"][@type="action"]' % standard_id))
-        condition = buttons[0].get('invisible')
+        outgoing_condition = outgoing_buttons[0].get('invisible')
+        incoming_condition = incoming_buttons[0].get('invisible')
         for state in ('draft', 'waiting', 'confirmed', 'assigned', 'done', 'cancel'):
             for code in ('incoming', 'internal', 'outgoing'):
                 for sale_id in (False, 1):
-                    with self.subTest(state=state, code=code, sale_id=sale_id):
-                        visible = not safe_eval(condition, {
-                            'id': 1, 'state': state, 'picking_type_code': code, 'sale_id': sale_id,
-                        })
-                        self.assertEqual(visible, code == 'outgoing' and bool(sale_id) and state in ('assigned', 'done'))
+                    for purchase_id in (False, 1):
+                        with self.subTest(state=state, code=code, sale_id=sale_id, purchase_id=purchase_id):
+                            outgoing_visible = not safe_eval(outgoing_condition, {
+                                'id': 1, 'state': state, 'picking_type_code': code,
+                                'sale_id': sale_id, 'purchase_id': purchase_id,
+                            })
+                            incoming_visible = not safe_eval(incoming_condition, {
+                                'id': 1, 'state': state, 'picking_type_code': code,
+                                'sale_id': sale_id, 'purchase_id': purchase_id,
+                            })
+                            self.assertEqual(
+                                outgoing_visible,
+                                code == 'outgoing' and bool(sale_id) and state in ('assigned', 'done'),
+                            )
+                            self.assertEqual(
+                                incoming_visible,
+                                code == 'incoming' and bool(purchase_id) and state in ('assigned', 'done'),
+                            )
+
+    def test_incoming_conduce_action_invocation_in_assigned_and_done(self):
+        picking, _purchase, _vendor = self._purchase_picking()
+        for state in ('assigned', 'done'):
+            if state == 'done':
+                picking.move_ids.write({'quantity': 1, 'state': 'done'})
+                picking.date_done = datetime(2026, 7, 2, 16)
+            with self.subTest(state=state):
+                self.assertEqual(picking.state, state)
+                action = self.incoming_report.report_action(picking, config=False)
+                self.assertEqual(action['type'], 'ir.actions.report')
+                self.assertEqual(action['report_name'], self.incoming_report.report_name)
+                html, _kind = self.env['ir.actions.report']._render_qweb_html(action['report_name'], picking.ids)
+                self.assertIn(b'CONDUCE DE ENTRADA', html)
+                self.assertEqual(picking.state, state)
+
+    def test_incoming_printing_does_not_change_inventory(self):
+        first, _purchase, _vendor = self._purchase_picking()
+        second, _purchase, _vendor = self._purchase_picking()
+        pickings = first | second
+        before_pickings = pickings.read(['state', 'scheduled_date', 'date_done', 'printed'])
+        before_moves = pickings.move_ids.read(['state', 'quantity', 'product_uom_qty'])
+        quant_domain = [('product_id', 'in', pickings.move_ids.product_id.ids)]
+        before_quants = self.env['stock.quant'].search(quant_domain).read(['quantity', 'reserved_quantity'])
+        action = self.incoming_report.report_action(pickings, config=False)
+        html, _kind = self.env['ir.actions.report']._render_qweb_html(action['report_name'], pickings.ids)
+        document = html_parser.fromstring(html)
+        self.assertEqual(len(document.xpath('//div[contains(@class, "fcr-conduce-article")]')), 2)
+        self.assertEqual(pickings.read(['state', 'scheduled_date', 'date_done', 'printed']), before_pickings)
+        self.assertEqual(pickings.move_ids.read(['state', 'quantity', 'product_uom_qty']), before_moves)
+        self.assertEqual(self.env['stock.quant'].search(quant_domain).read(['quantity', 'reserved_quantity']), before_quants)
 
     def test_direct_report_render_rejects_invalid_pickings(self):
         no_sale, _sale = self._picking(linked=False)
@@ -312,6 +520,22 @@ class TestVehicleConduce(TransactionCase):
         for picking in no_sale | incoming | no_vehicle:
             with self.subTest(picking=picking.id), self.assertRaises(UserError):
                 self.env['ir.actions.report']._render_qweb_html(self.report.report_name, picking.ids)
+
+    def test_direct_incoming_report_render_rejects_invalid_pickings(self):
+        outgoing, _sale = self._picking()
+        no_purchase = self.env['stock.picking'].create({
+            'picking_type_id': self.warehouse.in_type_id.id,
+            'partner_id': self.customer.id,
+            'location_id': self.env.ref('stock.stock_location_suppliers').id,
+            'location_dest_id': self.warehouse.lot_stock_id.id,
+        })
+        no_purchase.scheduled_date = datetime(2026, 6, 28, 16, 0)
+        self._move(no_purchase, self._vehicle_product()[0])
+        accessory = self.env['product.product'].create({'name': 'Incoming accessory only', 'type': 'consu'})
+        no_vehicle, _purchase, _vendor = self._purchase_picking([accessory])
+        for picking in outgoing | no_purchase | no_vehicle:
+            with self.subTest(picking=picking.id), self.assertRaises(UserError):
+                self.env['ir.actions.report']._render_qweb_html(self.incoming_report.report_name, picking.ids)
 
     def test_conduce_action_invocation_in_assigned_and_done(self):
         picking, _sale = self._picking()

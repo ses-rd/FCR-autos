@@ -43,6 +43,25 @@
         </div>
     </template>
 
+    <template id="vehicle_conduce_general">
+        <div class="fcr-section">
+            <div class="fcr-section-title">Datos Generales:</div>
+            <table>
+                <tr>
+                    <td style="width: 49%"><span t-out="conduce['partner_label']"/>: <span t-field="partner.name"/></td>
+                    <td style="width: 25%">Cédula no.: <span t-field="partner.vat"/></td>
+                    <td style="width: 26%">Teléfono: <span t-field="partner.phone"/></td>
+                </tr>
+            </table>
+            <table>
+                <tr>
+                    <td style="width: 49%">E-mail: <span class="fcr-code" t-field="partner.email"/></td>
+                    <td style="width: 51%">Concepto: <span t-out="conduce['concept']"/></td>
+                </tr>
+            </table>
+        </div>
+    </template>
+
     <template id="vehicle_conduce_vehicle">
         <div class="fcr-section">
             <div class="fcr-section-title">Datos del vehículo:</div>
@@ -89,7 +108,7 @@
         <div class="fcr-footer">Compra venta de vehículos en óptimo estado. Únicos con el pago en 24 Horas.</div>
     </template>
 
-    <template id="vehicle_conduce_outgoing_document">
+    <template id="vehicle_conduce_document">
         <t t-set="o" t-value="conduce['picking']"/>
         <t t-set="company" t-value="conduce['company']"/>
         <t t-set="partner" t-value="conduce['partner']"/>
@@ -100,26 +119,11 @@
                 <div class="fcr-content">
                     <t t-call="fcr_vehicle_conduce.vehicle_conduce_header"/>
                     <div class="fcr-date"><span t-out="conduce['date']"/></div>
-                    <h1 class="fcr-title">CONDUCE DE SALIDA</h1>
-                    <div class="fcr-section">
-                        <div class="fcr-section-title">Datos Generales:</div>
-                        <table>
-                            <tr>
-                                <td style="width: 49%">Entregado a: <span t-field="partner.name"/></td>
-                                <td style="width: 25%">Cédula no.: <span t-field="partner.vat"/></td>
-                                <td style="width: 26%">Teléfono: <span t-field="partner.phone"/></td>
-                            </tr>
-                        </table>
-                        <table>
-                            <tr>
-                                <td style="width: 49%">E-mail: <span class="fcr-code" t-field="partner.email"/></td>
-                                <td style="width: 51%">Concepto: ENTREGA DE VEHICULO</td>
-                            </tr>
-                        </table>
-                    </div>
+                    <h1 class="fcr-title"><span t-out="conduce['title']"/></h1>
+                    <t t-call="fcr_vehicle_conduce.vehicle_conduce_general"/>
                     <t t-call="fcr_vehicle_conduce.vehicle_conduce_vehicle"/>
                     <t t-call="fcr_vehicle_conduce.vehicle_conduce_inspection"/>
-                    <p class="fcr-legal">Atención: Por medio de la presente, es para verificar correctamente la entrega del vehículo. Una vez recibido, se aceptan todas las condiciones indicadas en el presente documento y toda las responsabilidades por daños provocados a la unidad con posterioridad a su entrega. La aceptación de este documento conlleva a la conformidad con todo lo detallado en el mismo y lo hace responsable ante cualquier incidente o falla que pueda comprometer a FCR AUTOS S.R.L., o al titular de la matrícula hasta la ejecución del traspaso a su nombre. No firme en caso de diferencia.</p>
+                    <p class="fcr-legal"><span t-out="conduce['legal_text']"/></p>
                     <t t-call="fcr_vehicle_conduce.vehicle_conduce_signatures"/>
                     <t t-call="fcr_vehicle_conduce.vehicle_conduce_footer"/>
                 </div>
@@ -127,10 +131,26 @@
         </div>
     </template>
 
+    <template id="vehicle_conduce_outgoing_document">
+        <t t-call="fcr_vehicle_conduce.vehicle_conduce_document"/>
+    </template>
+
+    <template id="vehicle_conduce_incoming_document">
+        <t t-call="fcr_vehicle_conduce.vehicle_conduce_document"/>
+    </template>
+
     <template id="report_vehicle_conduce_outgoing">
         <t t-call="web.html_container">
             <t t-foreach="conduce_documents" t-as="conduce">
                 <t t-call="fcr_vehicle_conduce.vehicle_conduce_outgoing_document"/>
+            </t>
+        </t>
+    </template>
+
+    <template id="report_vehicle_conduce_incoming">
+        <t t-call="web.html_container">
+            <t t-foreach="conduce_documents" t-as="conduce">
+                <t t-call="fcr_vehicle_conduce.vehicle_conduce_incoming_document"/>
             </t>
         </t>
     </template>
