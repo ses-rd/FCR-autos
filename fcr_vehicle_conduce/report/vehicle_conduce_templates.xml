@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Shared pieces deliberately contain no incoming/outgoing business logic. -->
+    <template id="vehicle_conduce_styles">
+        <style>
+            .fcr-conduce { font-family: Arial, sans-serif; color: #171717; background: white;
+                font-size: 9pt; line-height: 1.2; padding: 0; }
+            .fcr-conduce * { box-sizing: border-box; }
+            .fcr-conduce .fcr-content { width: 164mm; margin: 0 auto; }
+            .fcr-conduce .fcr-header { text-align: center; font-size: 9pt; color: #555; margin-bottom: 5mm; }
+            .fcr-conduce .fcr-logo { width: 91mm; height: auto; margin: 2mm auto 1mm; }
+            .fcr-conduce .fcr-company-line { line-height: 1.2; overflow-wrap: break-word; }
+            .fcr-conduce .fcr-date { text-align: right; margin: 0 0 2mm; }
+            .fcr-conduce .fcr-title { text-align: center; font-size: 11pt; font-weight: bold; margin: 0 0 3mm; }
+            .fcr-conduce .fcr-section-title { font-weight: bold; text-decoration: underline; margin: 0 0 3mm; }
+            .fcr-conduce table { width: 100%; table-layout: fixed; border-collapse: collapse; border: 0;
+                font-size: inherit; line-height: inherit; }
+            .fcr-conduce td { vertical-align: top; padding: 0.6mm 2mm 0.6mm 0; border: 0;
+                overflow-wrap: break-word; word-wrap: break-word; }
+            .fcr-conduce .fcr-section { margin-bottom: 3mm; }
+            .fcr-conduce .fcr-inspection { width: 100%; height: auto; display: block; margin: 0 auto; }
+            .fcr-conduce .fcr-legal { font-size: 7.5pt; line-height: 1.25; text-align: justify; margin: 2mm 0 0; }
+            .fcr-conduce .fcr-signatures { margin-top: 7mm; page-break-inside: avoid; }
+            .fcr-conduce .fcr-signature-line { border-top: 0.3mm solid #333; padding-top: 1mm; width: 60mm; }
+            .fcr-conduce .fcr-signature-right { margin-left: auto; }
+            .fcr-conduce .fcr-footer { margin-top: 6mm; text-align: center; font-family: Georgia, serif;
+                color: #666; font-size: 9pt; }
+            .fcr-conduce .fcr-inspection-block { page-break-inside: avoid; }
+        </style>
+    </template>
+
+    <template id="vehicle_conduce_header">
+        <div class="fcr-header">
+            <img class="fcr-logo" src="/fcr_vehicle_conduce/static/src/img/fcr_logo.png" alt="FCR AUTOS.COM"/>
+            <div class="fcr-company-line"><span t-field="company.street"/><t t-if="company.street2">, <span t-field="company.street2"/></t></div>
+            <div class="fcr-company-line"><span t-field="company.city"/><t t-if="company.state_id">, <span t-field="company.state_id.name"/></t></div>
+            <div class="fcr-company-line">Teléfono: <span t-field="company.phone"/></div>
+            <div class="fcr-company-line">E-mail: <span t-field="company.email"/></div>
+            <div class="fcr-company-line"><span t-field="company.website"/></div>
+            <div class="fcr-company-line">RNC: <span t-field="company.vat"/></div>
+        </div>
+    </template>
+
+    <template id="vehicle_conduce_vehicle">
+        <div class="fcr-section">
+            <div class="fcr-section-title">Datos del vehículo:</div>
+            <table>
+                <tr>
+                    <td style="width: 31%">Marca: <span t-field="vehicle.brand_id.name"/></td>
+                    <td style="width: 46%">Modelo: <span t-field="vehicle.model_id.name"/></td>
+                    <td style="width: 23%">Año: <span t-field="vehicle.model_year"/></td>
+                </tr>
+            </table>
+            <table>
+                <tr>
+                    <td style="width: 20%">Placa: <span t-field="vehicle.license_plate"/></td>
+                    <td style="width: 43%">Chasis: <span t-field="vehicle.vin_sn"/></td>
+                    <td style="width: 37%">Kms-Millas: <span t-field="vehicle.odometer" t-options="{'widget': 'float', 'precision': 0}"/> <span t-out="conduce['odometer_unit']"/></td>
+                </tr>
+            </table>
+            <table>
+                <tr>
+                    <td>Color: <span t-field="vehicle.color"/></td>
+                    <td>Tipo: <span t-out="conduce['vehicle_type']"/></td>
+                </tr>
+            </table>
+        </div>
+    </template>
+
+    <template id="vehicle_conduce_inspection">
+        <div class="fcr-inspection-block">
+            <img class="fcr-inspection" src="/fcr_vehicle_conduce/static/src/img/vehicle_inspection.png"
+                 alt="Checklist de inspección del vehículo: completar manualmente"/>
+        </div>
+    </template>
+
+    <template id="vehicle_conduce_signatures">
+        <table class="fcr-signatures">
+            <tr>
+                <td><div class="fcr-signature-line">Inspector</div></td>
+                <td><div class="fcr-signature-line fcr-signature-right">Cliente</div></td>
+            </tr>
+        </table>
+    </template>
+
+    <template id="vehicle_conduce_footer">
+        <div class="fcr-footer">Compra venta de vehículos en óptimo estado. Únicos con el pago en 24 Horas.</div>
+    </template>
+
+    <template id="vehicle_conduce_outgoing_document">
+        <t t-set="o" t-value="conduce['picking']"/>
+        <t t-set="company" t-value="conduce['company']"/>
+        <t t-set="partner" t-value="conduce['partner']"/>
+        <t t-set="vehicle" t-value="conduce['vehicle']"/>
+        <div class="article" t-att-data-oe-model="o._name" t-att-data-oe-id="o.id" t-att-data-oe-lang="o.env.user.lang">
+            <div class="page fcr-conduce">
+                <t t-call="fcr_vehicle_conduce.vehicle_conduce_styles"/>
+                <div class="fcr-content">
+                    <t t-call="fcr_vehicle_conduce.vehicle_conduce_header"/>
+                    <div class="fcr-date"><span t-out="conduce['date']"/></div>
+                    <h1 class="fcr-title">CONDUCE DE SALIDA</h1>
+                    <div class="fcr-section">
+                        <div class="fcr-section-title">Datos Generales:</div>
+                        <table>
+                            <tr>
+                                <td style="width: 49%">Entregado a: <span t-field="partner.name"/></td>
+                                <td style="width: 25%">Cédula no.: <span t-field="partner.vat"/></td>
+                                <td style="width: 26%">Teléfono: <span t-field="partner.phone"/></td>
+                            </tr>
+                        </table>
+                        <table>
+                            <tr>
+                                <td style="width: 49%">E-mail: <span t-field="partner.email"/></td>
+                                <td style="width: 51%">Concepto: ENTREGA DE VEHICULO</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <t t-call="fcr_vehicle_conduce.vehicle_conduce_vehicle"/>
+                    <t t-call="fcr_vehicle_conduce.vehicle_conduce_inspection"/>
+                    <p class="fcr-legal">Atención: Por medio de la presente, es para verificar correctamente la entrega del vehículo. Una vez recibido, se aceptan todas las condiciones indicadas en el presente documento y toda las responsabilidades por daños provocados a la unidad con posterioridad a su entrega. La aceptación de este documento conlleva a la conformidad con todo lo detallado en el mismo y lo hace responsable ante cualquier incidente o falla que pueda comprometer a FCR AUTOS S.R.L., o al titular de la matrícula hasta la ejecución del traspaso a su nombre. No firme en caso de diferencia.</p>
+                    <t t-call="fcr_vehicle_conduce.vehicle_conduce_signatures"/>
+                    <t t-call="fcr_vehicle_conduce.vehicle_conduce_footer"/>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="report_vehicle_conduce_outgoing">
+        <t t-call="web.html_container">
+            <t t-foreach="conduce_documents" t-as="conduce">
+                <t t-call="fcr_vehicle_conduce.vehicle_conduce_outgoing_document"/>
+            </t>
+        </t>
+    </template>
+</odoo>
