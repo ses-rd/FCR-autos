@@ -1,3 +1,5 @@
+from psycopg2 import IntegrityError
+
 from odoo import _, fields, models
 from odoo.exceptions import UserError
 from odoo.tools.misc import format_date
@@ -226,13 +228,23 @@ class StockPicking(models.Model):
         ], limit=1)
         if conduce:
             return conduce
-        return Conduce.create({
-            'picking_id': self.id,
-            'conduce_type': conduce_type,
-            'vehicle_id': values['vehicle'].id,
-            'partner_id': values['partner'].id,
-            'date': values['date_raw'],
-        })
+        try:
+            with self.env.cr.savepoint():
+                return Conduce.create({
+                    'picking_id': self.id,
+                    'conduce_type': conduce_type,
+                    'vehicle_id': values['vehicle'].id,
+                    'partner_id': values['partner'].id,
+                    'date': values['date_raw'],
+                })
+        except IntegrityError:
+            conduce = Conduce.search([
+                ('picking_id', '=', self.id),
+                ('conduce_type', '=', conduce_type),
+            ], limit=1)
+            if conduce:
+                return conduce
+            raise
 
     def _action_open_vehicle_conduce(self, conduce_type):
         self.ensure_one()

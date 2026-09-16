@@ -8,6 +8,7 @@ class FcrVehicleConduce(models.Model):
     _order = 'date desc, id desc'
 
     name = fields.Char(compute='_compute_name', store=True)
+    document_title = fields.Char(compute='_compute_document_title')
     active = fields.Boolean(default=True)
     picking_id = fields.Many2one('stock.picking', required=True, readonly=True, ondelete='restrict', index=True)
     company_id = fields.Many2one(related='picking_id.company_id', store=True, readonly=True)
@@ -105,6 +106,15 @@ class FcrVehicleConduce(models.Model):
             else:
                 conduce.name = _('Conduce de vehículo')
 
+    @api.depends('conduce_type')
+    def _compute_document_title(self):
+        titles = {
+            'incoming': _('CONDUCE DE ENTRADA'),
+            'outgoing': _('CONDUCE DE SALIDA'),
+        }
+        for conduce in self:
+            conduce.document_title = titles.get(conduce.conduce_type, _('CONDUCE DE VEHÍCULO'))
+
     @api.constrains('picking_id', 'conduce_type')
     def _check_picking_type_matches_conduce_type(self):
         expected = {'incoming': 'incoming', 'outgoing': 'outgoing'}
@@ -118,10 +128,7 @@ class FcrVehicleConduce(models.Model):
     def _check_resolved_vehicle_and_partner(self):
         for conduce in self:
             try:
-                if conduce.conduce_type == 'incoming':
-                    values = conduce.picking_id._get_vehicle_conduce_incoming_values()
-                else:
-                    values = conduce.picking_id._get_vehicle_conduce_outgoing_values()
+                values = conduce._get_expected_conduce_values()
             except UserError as error:
                 raise ValidationError(error.args[0]) from error
             if conduce.vehicle_id != values['vehicle'] or conduce.partner_id != values['partner']:
@@ -129,9 +136,36 @@ class FcrVehicleConduce(models.Model):
                     'El vehículo o contacto del conduce no coincide con la transferencia.'
                 ))
 
+    def _get_expected_conduce_values(self):
+        self.ensure_one()
+        if self.conduce_type == 'incoming':
+            return self.picking_id._get_vehicle_conduce_incoming_values()
+        return self.picking_id._get_vehicle_conduce_outgoing_values()
+
+    def write(self, vals):
+        if vals and not self.env.context.get('vehicle_conduce_completion'):
+            if any(conduce.state == 'done' for conduce in self):
+                raise UserError(_('No puede modificar un conduce completado.'))
+            if vals.get('state') == 'done':
+                raise UserError(_('Use el botón Completar para completar el conduce.'))
+        return super().write(vals)
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        if not self.env.context.get('vehicle_conduce_completion'):
+            for vals in vals_list:
+                if vals.get('state') == 'done':
+                    raise UserError(_('Use el botón Completar para completar el conduce.'))
+        return super().create(vals_list)
+
     def action_mark_completed(self):
         for conduce in self:
-            conduce.write({
+            if conduce.state != 'draft':
+                raise UserError(_('Solo puede completar conduces en borrador.'))
+            values = conduce._get_expected_conduce_values()
+            if conduce.vehicle_id != values['vehicle'] or conduce.partner_id != values['partner']:
+                raise UserError(_('El vehículo o contacto del conduce ya no coincide con la transferencia.'))
+            conduce.with_context(vehicle_conduce_completion=True).write({
                 'state': 'done',
                 'completed_by_id': self.env.user.id,
                 'completed_date': fields.Datetime.now(),
