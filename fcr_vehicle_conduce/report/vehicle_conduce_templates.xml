@@ -5,28 +5,28 @@
         <style>
             .fcr-conduce-article + .fcr-conduce-article { page-break-before: always; }
             .fcr-conduce { font-family: Arial, sans-serif; color: #171717; background: white;
-                font-size: 9pt; line-height: 1.2; padding: 0; }
+                font-size: 8.8pt; line-height: 1.12; padding: 0; }
             .fcr-conduce * { box-sizing: border-box; }
             .fcr-conduce .fcr-content { width: 164mm; margin: 0 auto; }
-            .fcr-conduce .fcr-header { text-align: center; font-size: 9pt; color: #555; margin-bottom: 5mm; }
-            .fcr-conduce .fcr-logo { width: 91mm; height: auto; margin: 2mm auto 1mm; }
-            .fcr-conduce .fcr-company-line { line-height: 1.2; word-wrap: break-word; }
-            .fcr-conduce .fcr-date { text-align: right; margin: 0 0 2mm; }
-            .fcr-conduce .fcr-title { text-align: center; font-size: 11pt; font-weight: bold; margin: 0 0 3mm; }
-            .fcr-conduce .fcr-section-title { font-weight: bold; text-decoration: underline; margin: 0 0 3mm; }
+            .fcr-conduce .fcr-header { text-align: center; font-size: 8.8pt; color: #555; margin-bottom: 3mm; }
+            .fcr-conduce .fcr-logo { width: 91mm; height: auto; margin: 1mm auto 0.5mm; }
+            .fcr-conduce .fcr-company-line { line-height: 1.1; word-wrap: break-word; }
+            .fcr-conduce .fcr-date { text-align: right; margin: 0 0 1mm; }
+            .fcr-conduce .fcr-title { text-align: center; font-size: 10.5pt; font-weight: bold; margin: 0 0 2mm; }
+            .fcr-conduce .fcr-section-title { font-weight: bold; text-decoration: underline; margin: 0 0 1.5mm; }
             .fcr-conduce table { width: 100%; table-layout: fixed; border-collapse: collapse; border: 0;
                 font-size: inherit; line-height: inherit; }
-            .fcr-conduce td { vertical-align: top; padding: 0.6mm 2mm 0.6mm 0; border: 0;
+            .fcr-conduce td { vertical-align: top; padding: 0.35mm 2mm 0.35mm 0; border: 0;
                 word-wrap: break-word; }
             .fcr-conduce .fcr-code { word-break: break-all; }
-            .fcr-conduce .fcr-section { margin-bottom: 3mm; }
-            .fcr-conduce .fcr-inspection { width: 100%; height: auto; display: block; margin: 0 auto; }
-            .fcr-conduce .fcr-legal { font-size: 7.5pt; line-height: 1.25; text-align: justify; margin: 2mm 0 0; }
-            .fcr-conduce .fcr-signatures { margin-top: 7mm; page-break-inside: avoid; }
-            .fcr-conduce .fcr-signature-line { border-top: 0.3mm solid #333; padding-top: 1mm; width: 60mm; }
+            .fcr-conduce .fcr-section { margin-bottom: 2mm; }
+            .fcr-conduce .fcr-inspection { width: 156mm; max-width: 100%; height: auto; display: block; margin: 0 auto; }
+            .fcr-conduce .fcr-legal { font-size: 7.3pt; line-height: 1.16; text-align: justify; margin: 1mm 0 0; }
+            .fcr-conduce .fcr-signatures { margin-top: 4mm; page-break-inside: avoid; }
+            .fcr-conduce .fcr-signature-line { border-top: 0.3mm solid #333; padding-top: 0.8mm; width: 60mm; }
             .fcr-conduce .fcr-signature-right { margin-left: auto; }
-            .fcr-conduce .fcr-footer { margin-top: 6mm; text-align: center; font-family: Georgia, serif;
-                color: #666; font-size: 9pt; }
+            .fcr-conduce .fcr-footer { margin-top: 4mm; text-align: center; font-family: Georgia, serif;
+                color: #666; font-size: 8.8pt; }
             .fcr-conduce .fcr-inspection-block { page-break-inside: avoid; }
         </style>
     </template>
