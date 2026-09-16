@@ -12,7 +12,8 @@
                 </header>
                 <sheet>
                     <div class="oe_title">
-                        <h1><field name="name" readonly="1"/></h1>
+                        <h1><field name="document_title" readonly="1"/></h1>
+                        <h2><field name="name" readonly="1"/></h2>
                     </div>
                     <group string="Datos generales">
                         <group>
@@ -47,59 +48,59 @@
                         <page string="Interior / Equipamiento">
                             <group>
                                 <group>
-                                    <field name="check_lights"/>
-                                    <field name="check_gauges"/>
-                                    <field name="check_horns"/>
-                                    <field name="check_ac_vents"/>
-                                    <field name="check_rearview_mirrors"/>
-                                    <field name="check_glasses"/>
-                                    <field name="check_window_switches"/>
+                                    <field name="check_lights" readonly="state == 'done'"/>
+                                    <field name="check_gauges" readonly="state == 'done'"/>
+                                    <field name="check_horns" readonly="state == 'done'"/>
+                                    <field name="check_ac_vents" readonly="state == 'done'"/>
+                                    <field name="check_rearview_mirrors" readonly="state == 'done'"/>
+                                    <field name="check_glasses" readonly="state == 'done'"/>
+                                    <field name="check_window_switches" readonly="state == 'done'"/>
                                 </group>
                                 <group>
-                                    <field name="check_radio"/>
-                                    <field name="check_cassette_player"/>
-                                    <field name="check_cd_changer"/>
-                                    <field name="check_antenna"/>
-                                    <field name="check_air_conditioning"/>
-                                    <field name="check_cup_holder"/>
-                                    <field name="check_lighter"/>
+                                    <field name="check_radio" readonly="state == 'done'"/>
+                                    <field name="check_cassette_player" readonly="state == 'done'"/>
+                                    <field name="check_cd_changer" readonly="state == 'done'"/>
+                                    <field name="check_antenna" readonly="state == 'done'"/>
+                                    <field name="check_air_conditioning" readonly="state == 'done'"/>
+                                    <field name="check_cup_holder" readonly="state == 'done'"/>
+                                    <field name="check_lighter" readonly="state == 'done'"/>
                                 </group>
                                 <group>
-                                    <field name="check_center_console_lid"/>
-                                    <field name="check_ashtray"/>
-                                    <field name="check_headliner"/>
-                                    <field name="check_seat_upholstery"/>
-                                    <field name="check_moldings"/>
-                                    <field name="check_floor_mats"/>
-                                    <field name="check_door_lining"/>
+                                    <field name="check_center_console_lid" readonly="state == 'done'"/>
+                                    <field name="check_ashtray" readonly="state == 'done'"/>
+                                    <field name="check_headliner" readonly="state == 'done'"/>
+                                    <field name="check_seat_upholstery" readonly="state == 'done'"/>
+                                    <field name="check_moldings" readonly="state == 'done'"/>
+                                    <field name="check_floor_mats" readonly="state == 'done'"/>
+                                    <field name="check_door_lining" readonly="state == 'done'"/>
                                 </group>
                             </group>
                         </page>
                         <page string="Motor / Accesorios / Herramientas">
                             <group>
                                 <group>
-                                    <field name="check_oil_dipstick"/>
-                                    <field name="check_atf_dipstick"/>
-                                    <field name="check_engine_oil_cap"/>
-                                    <field name="check_hydraulic_oil_cap"/>
-                                    <field name="check_coolant_cap"/>
-                                    <field name="check_radiator_cap"/>
+                                    <field name="check_oil_dipstick" readonly="state == 'done'"/>
+                                    <field name="check_atf_dipstick" readonly="state == 'done'"/>
+                                    <field name="check_engine_oil_cap" readonly="state == 'done'"/>
+                                    <field name="check_hydraulic_oil_cap" readonly="state == 'done'"/>
+                                    <field name="check_coolant_cap" readonly="state == 'done'"/>
+                                    <field name="check_radiator_cap" readonly="state == 'done'"/>
                                 </group>
                                 <group>
-                                    <field name="check_battery_no_7"/>
-                                    <field name="check_battery_terminal_cover"/>
-                                    <field name="check_engine_cover"/>
-                                    <field name="check_bumper_converter_cover"/>
-                                    <field name="check_lens"/>
-                                    <field name="check_wheel_center_cap"/>
+                                    <field name="check_battery_no_7" readonly="state == 'done'"/>
+                                    <field name="check_battery_terminal_cover" readonly="state == 'done'"/>
+                                    <field name="check_engine_cover" readonly="state == 'done'"/>
+                                    <field name="check_bumper_converter_cover" readonly="state == 'done'"/>
+                                    <field name="check_lens" readonly="state == 'done'"/>
+                                    <field name="check_wheel_center_cap" readonly="state == 'done'"/>
                                 </group>
                                 <group>
-                                    <field name="check_spare_tire"/>
-                                    <field name="check_wheel_wrench"/>
-                                    <field name="check_jack"/>
-                                    <field name="check_keys"/>
-                                    <field name="check_pliers"/>
-                                    <field name="check_screwdriver"/>
+                                    <field name="check_spare_tire" readonly="state == 'done'"/>
+                                    <field name="check_wheel_wrench" readonly="state == 'done'"/>
+                                    <field name="check_jack" readonly="state == 'done'"/>
+                                    <field name="check_keys" readonly="state == 'done'"/>
+                                    <field name="check_pliers" readonly="state == 'done'"/>
+                                    <field name="check_screwdriver" readonly="state == 'done'"/>
                                 </group>
                             </group>
                         </page>

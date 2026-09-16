@@ -609,6 +609,46 @@ class TestVehicleConduce(TransactionCase):
         self.assertEqual(picking.move_ids.read(['state', 'quantity', 'product_uom_qty']), before_moves)
         self.assertEqual(self.env['stock.quant'].search(quant_domain).read(['quantity', 'reserved_quantity']), before_quants)
 
+    def test_completed_digital_conduce_is_immutable(self):
+        picking, _sale = self._picking()
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        conduce.write({'check_lights': True})
+        conduce.action_mark_completed()
+        with self.assertRaisesRegex(UserError, 'completado'):
+            conduce.write({'check_radio': True})
+        with self.assertRaisesRegex(UserError, 'completado'):
+            conduce.write({'state': 'draft'})
+
+    def test_digital_conduce_must_be_completed_with_button(self):
+        picking, _sale = self._picking()
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        with self.assertRaisesRegex(UserError, 'botón Completar'):
+            conduce.write({'state': 'done'})
+        values = picking._get_vehicle_conduce_outgoing_values()
+        with self.assertRaisesRegex(UserError, 'botón Completar'):
+            self.env['fcr.vehicle.conduce'].create({
+                'picking_id': picking.id,
+                'conduce_type': 'outgoing',
+                'vehicle_id': values['vehicle'].id,
+                'partner_id': values['partner'].id,
+                'date': values['date_raw'],
+                'state': 'done',
+            })
+
+    def test_completion_revalidates_transfer(self):
+        picking, _sale = self._picking()
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        other_product, _other_vehicle = self._vehicle_product()
+        picking.move_ids.product_id.product_tmpl_id.vehicle_id = other_product.product_tmpl_id.vehicle_id
+        with self.assertRaisesRegex(UserError, 'ya no coincide'):
+            conduce.action_mark_completed()
+
     def test_digital_conduce_reuses_vehicle_validation(self):
         picking, _sale = self._picking()
         company = self.env['res.company'].create({'name': 'Other digital conduce company'})
