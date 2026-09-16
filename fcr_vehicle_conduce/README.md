@@ -16,7 +16,16 @@ por datos corporativos inventados. El logotipo FCR es el del formato proporciona
 
 ## Impresión y validaciones
 
-En la transferencia: **Imprimir → Conduce de Salida**.
+En la cabecera de la transferencia: botón independiente **Conduce de Salida**.
+El botón **Print** estándar se conserva: ejecuta un reporte concreto y no es el
+selector de todos los reportes vinculados. El conduce también mantiene su enlace
+al menú contextual de reportes, disponible para formulario y lista (`list,form`).
+En Odoo 19, `ir.actions.report.domain` filtra ese menú contextual mediante
+`get_valid_action_reports`; no convierte el botón Print de la cabecera en un desplegable.
+La nueva vista hereda `stock.view_picking_form` y se carga después de la acción.
+El botón utiliza `type="action"` y llama directamente al reporte propio; no llama
+a `do_print_picking()` ni altera el indicador `printed` del traslado.
+
 El dominio de la acción exige `picking_type_code = outgoing`, `sale_id` y estado
 `assigned` (Listo) o `done` (Hecho). El servidor vuelve a validar cada documento,
 incluyendo solicitudes directas al reporte. Un lote con una transferencia inválida

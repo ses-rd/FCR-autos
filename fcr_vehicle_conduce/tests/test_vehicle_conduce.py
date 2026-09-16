@@ -5,6 +5,7 @@ from lxml import html as html_parser
 
 from odoo.exceptions import UserError
 from odoo.tests import TransactionCase, tagged
+from odoo.tools.safe_eval import safe_eval
 
 
 @tagged('post_install', '-at_install')
@@ -262,6 +263,71 @@ class TestVehicleConduce(TransactionCase):
         self.assertAlmostEqual(self.report.paperformat_id.print_page_width, 215.9)
         self.assertAlmostEqual(self.report.paperformat_id.print_page_height, 279.4)
 
+    def test_report_binding_and_standard_reports_are_independent(self):
+        self.assertEqual(self.report.model, 'stock.picking')
+        self.assertEqual(self.report.binding_model_id.model, 'stock.picking')
+        self.assertEqual(self.report.binding_type, 'report')
+        self.assertEqual(set(self.report.binding_view_types.split(',')), {'list', 'form'})
+        bindings = self.env['ir.actions.actions'].get_bindings('stock.picking')['report']
+        self.assertIn(self.report.id, [action['id'] for action in bindings])
+        for xmlid, template in (
+            ('stock.action_report_delivery', 'stock.report_deliveryslip'),
+            ('stock.action_report_picking', 'stock.report_picking'),
+        ):
+            standard = self.env.ref(xmlid)
+            self.assertNotEqual(standard, self.report)
+            self.assertEqual(standard.model, 'stock.picking')
+            self.assertEqual(standard.report_name, template)
+            self.assertEqual(standard.report_type, 'qweb-pdf')
+            self.assertIn(standard.id, [action['id'] for action in bindings])
+
+    def test_form_has_separate_conditional_conduce_button(self):
+        view = self.env['stock.picking'].get_view(
+            view_id=self.env.ref('stock.view_picking_form').id, view_type='form',
+        )
+        form = html_parser.fromstring(view['arch'])
+        buttons = form.xpath('//header/button[@name="%s"]' % self.report.id)
+        self.assertEqual(len(buttons), 1)
+        self.assertEqual(buttons[0].get('type'), 'action')
+        self.assertTrue(form.xpath('//field[@name="sale_id"]'))
+        # Both standard Print buttons must remain present and keep their targets.
+        self.assertTrue(form.xpath('//header/button[@name="do_print_picking"][@type="object"]'))
+        standard_id = self.env.ref('stock.action_report_delivery').id
+        self.assertTrue(form.xpath('//header/button[@name="%s"][@type="action"]' % standard_id))
+        condition = buttons[0].get('invisible')
+        for state in ('draft', 'waiting', 'confirmed', 'assigned', 'done', 'cancel'):
+            for code in ('incoming', 'internal', 'outgoing'):
+                for sale_id in (False, 1):
+                    with self.subTest(state=state, code=code, sale_id=sale_id):
+                        visible = not safe_eval(condition, {
+                            'id': 1, 'state': state, 'picking_type_code': code, 'sale_id': sale_id,
+                        })
+                        self.assertEqual(visible, code == 'outgoing' and bool(sale_id) and state in ('assigned', 'done'))
+
+    def test_direct_report_render_rejects_invalid_pickings(self):
+        no_sale, _sale = self._picking(linked=False)
+        incoming, _sale = self._picking(picking_type=self.warehouse.in_type_id)
+        product = self.env['product.product'].create({'name': 'Unlinked accessory', 'type': 'consu'})
+        no_vehicle, _sale = self._picking(product)
+        for picking in no_sale | incoming | no_vehicle:
+            with self.subTest(picking=picking.id), self.assertRaises(UserError):
+                self.env['ir.actions.report']._render_qweb_html(self.report.report_name, picking.ids)
+
+    def test_conduce_action_invocation_in_assigned_and_done(self):
+        picking, _sale = self._picking()
+        for state in ('assigned', 'done'):
+            if state == 'done':
+                picking.move_ids.write({'quantity': 1, 'state': 'done'})
+                picking.date_done = datetime(2026, 7, 2, 16)
+            with self.subTest(state=state):
+                self.assertEqual(picking.state, state)
+                action = self.report.report_action(picking, config=False)
+                self.assertEqual(action['type'], 'ir.actions.report')
+                self.assertEqual(action['report_name'], self.report.report_name)
+                html, _kind = self.env['ir.actions.report']._render_qweb_html(action['report_name'], picking.ids)
+                self.assertIn(b'CONDUCE DE SALIDA', html)
+                self.assertEqual(picking.state, state)
+
     def test_qweb_html_contains_vehicle_and_static_checklist(self):
         picking, _sale = self._picking()
         html, _kind = self.env['ir.actions.report']._render_qweb_html(self.report.report_name, picking.ids)
@@ -286,13 +352,14 @@ class TestVehicleConduce(TransactionCase):
         first, _sale = self._picking()
         second, _sale = self._picking()
         pickings = first | second
-        before_pickings = pickings.read(['state', 'scheduled_date', 'date_done'])
+        before_pickings = pickings.read(['state', 'scheduled_date', 'date_done', 'printed'])
         before_moves = pickings.move_ids.read(['state', 'quantity', 'product_uom_qty'])
         quant_domain = [('product_id', 'in', pickings.move_ids.product_id.ids)]
         before_quants = self.env['stock.quant'].search(quant_domain).read(['quantity', 'reserved_quantity'])
-        html, _kind = self.env['ir.actions.report']._render_qweb_html(self.report.report_name, pickings.ids)
+        action = self.report.report_action(pickings, config=False)
+        html, _kind = self.env['ir.actions.report']._render_qweb_html(action['report_name'], pickings.ids)
         document = html_parser.fromstring(html)
         self.assertEqual(len(document.xpath('//div[contains(@class, "fcr-conduce-article")]')), 2)
-        self.assertEqual(pickings.read(['state', 'scheduled_date', 'date_done']), before_pickings)
+        self.assertEqual(pickings.read(['state', 'scheduled_date', 'date_done', 'printed']), before_pickings)
         self.assertEqual(pickings.move_ids.read(['state', 'quantity', 'product_uom_qty']), before_moves)
         self.assertEqual(self.env['stock.quant'].search(quant_domain).read(['quantity', 'reserved_quantity']), before_quants)
