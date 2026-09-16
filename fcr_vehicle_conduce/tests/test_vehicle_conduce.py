@@ -447,10 +447,16 @@ class TestVehicleConduce(TransactionCase):
         form = html_parser.fromstring(view['arch'])
         outgoing_buttons = form.xpath('//header/button[@name="%s"]' % self.report.id)
         incoming_buttons = form.xpath('//header/button[@name="%s"]' % self.incoming_report.id)
+        outgoing_checklist_buttons = form.xpath('//header/button[@name="action_open_vehicle_conduce_outgoing"]')
+        incoming_checklist_buttons = form.xpath('//header/button[@name="action_open_vehicle_conduce_incoming"]')
         self.assertEqual(len(outgoing_buttons), 1)
         self.assertEqual(len(incoming_buttons), 1)
+        self.assertEqual(len(outgoing_checklist_buttons), 1)
+        self.assertEqual(len(incoming_checklist_buttons), 1)
         self.assertEqual(outgoing_buttons[0].get('type'), 'action')
         self.assertEqual(incoming_buttons[0].get('type'), 'action')
+        self.assertEqual(outgoing_checklist_buttons[0].get('type'), 'object')
+        self.assertEqual(incoming_checklist_buttons[0].get('type'), 'object')
         self.assertTrue(form.xpath('//field[@name="sale_id"]'))
         self.assertTrue(form.xpath('//field[@name="purchase_id"]'))
         # Both standard Print buttons must remain present and keep their targets.
@@ -459,6 +465,8 @@ class TestVehicleConduce(TransactionCase):
         self.assertTrue(form.xpath('//header/button[@name="%s"][@type="action"]' % standard_id))
         outgoing_condition = outgoing_buttons[0].get('invisible')
         incoming_condition = incoming_buttons[0].get('invisible')
+        outgoing_checklist_condition = outgoing_checklist_buttons[0].get('invisible')
+        incoming_checklist_condition = incoming_checklist_buttons[0].get('invisible')
         for state in ('draft', 'waiting', 'confirmed', 'assigned', 'done', 'cancel'):
             for code in ('incoming', 'internal', 'outgoing'):
                 for sale_id in (False, 1):
@@ -472,6 +480,14 @@ class TestVehicleConduce(TransactionCase):
                                 'id': 1, 'state': state, 'picking_type_code': code,
                                 'sale_id': sale_id, 'purchase_id': purchase_id,
                             })
+                            outgoing_checklist_visible = not safe_eval(outgoing_checklist_condition, {
+                                'id': 1, 'state': state, 'picking_type_code': code,
+                                'sale_id': sale_id, 'purchase_id': purchase_id,
+                            })
+                            incoming_checklist_visible = not safe_eval(incoming_checklist_condition, {
+                                'id': 1, 'state': state, 'picking_type_code': code,
+                                'sale_id': sale_id, 'purchase_id': purchase_id,
+                            })
                             self.assertEqual(
                                 outgoing_visible,
                                 code == 'outgoing' and bool(sale_id) and state in ('assigned', 'done'),
@@ -480,6 +496,8 @@ class TestVehicleConduce(TransactionCase):
                                 incoming_visible,
                                 code == 'incoming' and bool(purchase_id) and state in ('assigned', 'done'),
                             )
+                            self.assertEqual(outgoing_checklist_visible, outgoing_visible)
+                            self.assertEqual(incoming_checklist_visible, incoming_visible)
 
     def test_incoming_conduce_action_invocation_in_assigned_and_done(self):
         picking, _purchase, _vendor = self._purchase_picking()
@@ -511,6 +529,99 @@ class TestVehicleConduce(TransactionCase):
         self.assertEqual(pickings.read(['state', 'scheduled_date', 'date_done', 'printed']), before_pickings)
         self.assertEqual(pickings.move_ids.read(['state', 'quantity', 'product_uom_qty']), before_moves)
         self.assertEqual(self.env['stock.quant'].search(quant_domain).read(['quantity', 'reserved_quantity']), before_quants)
+
+    def test_create_outgoing_digital_conduce_from_valid_delivery(self):
+        picking, _sale = self._picking()
+        vehicle = picking.move_ids.product_id.product_tmpl_id.vehicle_id
+        action = picking.action_open_vehicle_conduce_outgoing()
+        conduce = self.env['fcr.vehicle.conduce'].browse(action['res_id'])
+        self.assertEqual(action['res_model'], 'fcr.vehicle.conduce')
+        self.assertEqual(conduce.picking_id, picking)
+        self.assertEqual(conduce.conduce_type, 'outgoing')
+        self.assertEqual(conduce.vehicle_id, vehicle)
+        self.assertEqual(conduce.partner_id, self.recipient)
+        self.assertEqual(conduce.state, 'draft')
+        self.assertEqual(conduce.inspector_id, self.env.user)
+
+    def test_create_incoming_digital_conduce_from_valid_receipt(self):
+        picking, _purchase, vendor = self._purchase_picking()
+        vehicle = picking.move_ids.product_id.product_tmpl_id.vehicle_id
+        action = picking.action_open_vehicle_conduce_incoming()
+        conduce = self.env['fcr.vehicle.conduce'].browse(action['res_id'])
+        self.assertEqual(action['res_model'], 'fcr.vehicle.conduce')
+        self.assertEqual(conduce.picking_id, picking)
+        self.assertEqual(conduce.conduce_type, 'incoming')
+        self.assertEqual(conduce.vehicle_id, vehicle)
+        self.assertEqual(conduce.partner_id, vendor)
+        self.assertEqual(conduce.state, 'draft')
+
+    def test_second_click_returns_same_digital_conduce(self):
+        outgoing, _sale = self._picking()
+        first = outgoing.action_open_vehicle_conduce_outgoing()['res_id']
+        second = outgoing.action_open_vehicle_conduce_outgoing()['res_id']
+        self.assertEqual(first, second)
+        self.assertEqual(self.env['fcr.vehicle.conduce'].search_count([
+            ('picking_id', '=', outgoing.id),
+            ('conduce_type', '=', 'outgoing'),
+        ]), 1)
+        incoming, _purchase, _vendor = self._purchase_picking()
+        first = incoming.action_open_vehicle_conduce_incoming()['res_id']
+        second = incoming.action_open_vehicle_conduce_incoming()['res_id']
+        self.assertEqual(first, second)
+        self.assertEqual(self.env['fcr.vehicle.conduce'].search_count([
+            ('picking_id', '=', incoming.id),
+            ('conduce_type', '=', 'incoming'),
+        ]), 1)
+
+    def test_digital_conduce_rejects_wrong_picking_type(self):
+        outgoing, _sale = self._picking()
+        incoming, _purchase, _vendor = self._purchase_picking()
+        with self.assertRaisesRegex(UserError, 'operaciones de entrada'):
+            outgoing.action_open_vehicle_conduce_incoming()
+        with self.assertRaisesRegex(UserError, 'operaciones de salida'):
+            incoming.action_open_vehicle_conduce_outgoing()
+
+    def test_digital_checklist_persists_and_completion_does_not_change_stock(self):
+        picking, _purchase, _vendor = self._purchase_picking()
+        before_picking = picking.read(['state', 'scheduled_date', 'date_done', 'printed'])
+        before_moves = picking.move_ids.read(['state', 'quantity', 'product_uom_qty'])
+        quant_domain = [('product_id', 'in', picking.move_ids.product_id.ids)]
+        before_quants = self.env['stock.quant'].search(quant_domain).read(['quantity', 'reserved_quantity'])
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_incoming()['res_id']
+        )
+        conduce.write({
+            'check_lights': True,
+            'check_radio': True,
+            'check_spare_tire': True,
+            'check_jack': True,
+        })
+        conduce.action_mark_completed()
+        conduce.invalidate_recordset()
+        self.assertTrue(conduce.check_lights)
+        self.assertTrue(conduce.check_radio)
+        self.assertTrue(conduce.check_spare_tire)
+        self.assertTrue(conduce.check_jack)
+        self.assertEqual(conduce.state, 'done')
+        self.assertEqual(conduce.completed_by_id, self.env.user)
+        self.assertTrue(conduce.completed_date)
+        self.assertEqual(picking.read(['state', 'scheduled_date', 'date_done', 'printed']), before_picking)
+        self.assertEqual(picking.move_ids.read(['state', 'quantity', 'product_uom_qty']), before_moves)
+        self.assertEqual(self.env['stock.quant'].search(quant_domain).read(['quantity', 'reserved_quantity']), before_quants)
+
+    def test_digital_conduce_reuses_vehicle_validation(self):
+        picking, _sale = self._picking()
+        company = self.env['res.company'].create({'name': 'Other digital conduce company'})
+        picking.move_ids.product_id.product_tmpl_id.vehicle_id.company_id = company
+        with self.assertRaisesRegex(UserError, 'otra compañía'):
+            picking.action_open_vehicle_conduce_outgoing()
+        vehicle_product, vehicle = self._vehicle_product()
+        accessory = self.env['product.product'].create({'name': 'Digital accessory', 'type': 'consu'})
+        receipt, _purchase, _vendor = self._purchase_picking([vehicle_product, accessory])
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            receipt.action_open_vehicle_conduce_incoming()['res_id']
+        )
+        self.assertEqual(conduce.vehicle_id, vehicle)
 
     def test_direct_report_render_rejects_invalid_pickings(self):
         no_sale, _sale = self._picking(linked=False)

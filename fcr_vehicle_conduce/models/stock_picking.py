@@ -86,6 +86,7 @@ class StockPicking(models.Model):
             'vehicle': vehicle,
             'vehicle_type': self._get_vehicle_conduce_type(vehicle),
             'odometer_unit': {'kilometers': 'km', 'miles': 'mi'}.get(vehicle.odometer_unit, ''),
+            'date_raw': date,
             'date': format_date(
                 self.env, fields.Datetime.context_timestamp(self, date).date(),
                 date_format='dd/MM/yyyy',
@@ -208,3 +209,43 @@ class StockPicking(models.Model):
             'purchase': purchase,
             'partner': partner,
         }
+
+    def _get_or_create_vehicle_conduce(self, conduce_type):
+        self.ensure_one()
+        if conduce_type == 'outgoing':
+            values = self._get_vehicle_conduce_outgoing_values()
+        elif conduce_type == 'incoming':
+            values = self._get_vehicle_conduce_incoming_values()
+        else:
+            raise UserError(_('Tipo de conduce no soportado: %(type)s.', type=conduce_type))
+
+        Conduce = self.env['fcr.vehicle.conduce'].with_context(active_test=False)
+        conduce = Conduce.search([
+            ('picking_id', '=', self.id),
+            ('conduce_type', '=', conduce_type),
+        ], limit=1)
+        if conduce:
+            return conduce
+        return Conduce.create({
+            'picking_id': self.id,
+            'conduce_type': conduce_type,
+            'vehicle_id': values['vehicle'].id,
+            'partner_id': values['partner'].id,
+            'date': values['date_raw'],
+        })
+
+    def _action_open_vehicle_conduce(self, conduce_type):
+        self.ensure_one()
+        conduce = self._get_or_create_vehicle_conduce(conduce_type)
+        action = self.env.ref('fcr_vehicle_conduce.action_vehicle_conduce').read()[0]
+        action.update({
+            'res_id': conduce.id,
+            'views': [(self.env.ref('fcr_vehicle_conduce.view_vehicle_conduce_form').id, 'form')],
+        })
+        return action
+
+    def action_open_vehicle_conduce_outgoing(self):
+        return self._action_open_vehicle_conduce('outgoing')
+
+    def action_open_vehicle_conduce_incoming(self):
+        return self._action_open_vehicle_conduce('incoming')
