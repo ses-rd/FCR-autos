@@ -490,11 +490,11 @@ class TestVehicleConduce(TransactionCase):
                             })
                             self.assertEqual(
                                 outgoing_visible,
-                                code == 'outgoing' and bool(sale_id) and state in ('assigned', 'done'),
+                                code == 'outgoing' and state in ('assigned', 'done'),
                             )
                             self.assertEqual(
                                 incoming_visible,
-                                code == 'incoming' and bool(purchase_id) and state in ('assigned', 'done'),
+                                code == 'incoming' and state in ('assigned', 'done'),
                             )
                             self.assertEqual(outgoing_checklist_visible, outgoing_visible)
                             self.assertEqual(incoming_checklist_visible, incoming_visible)
