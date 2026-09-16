@@ -1,13 +1,14 @@
-# FCR — Conduce de Salida (Odoo 19)
+# FCR — Conduces de vehículos (Odoo 19)
 
-Primera fase: un PDF de salida por transferencia, con un único vehículo.
-No implementa entradas, inspecciones digitales, firmas digitales ni modificaciones de inventario.
+Reportes PDF de Entrada y Salida por transferencia, con un único vehículo.
+No implementa inspecciones digitales, firmas digitales ni modificaciones de inventario.
 
 ## Instalación y dependencias
 
-Instalar `fcr_vehicle_conduce` y sus dependencias `eg_fleet_product_link`, `sale_stock` y `web`.
+Instalar `fcr_vehicle_conduce` y sus dependencias `eg_fleet_product_link`, `purchase_stock`,
+`sale_stock` y `web`.
 `fleet`, `stock`, `product` y `account` llegan mediante esas dependencias.
-No depende de `purchase_stock`, `l10n_do_ecf`, facturas ni módulos de nómina.
+No depende de `l10n_do_ecf`, facturas ni módulos de nómina.
 Los módulos estándar de Odoo no están incluidos en este repositorio.
 
 Configurar dirección, ciudad/provincia, teléfono, correo, web y RNC en la compañía
@@ -16,7 +17,8 @@ por datos corporativos inventados. El logotipo FCR es el del formato proporciona
 
 ## Impresión y validaciones
 
-En la cabecera de la transferencia: botón independiente **Conduce de Salida**.
+En la cabecera de la transferencia: botones independientes **Conduce de Salida** y
+**Conduce de Entrada** cuando aplican.
 El botón **Print** estándar se conserva: ejecuta un reporte concreto y no es el
 selector de todos los reportes vinculados. El conduce también mantiene su enlace
 al menú contextual de reportes, disponible para formulario y lista (`list,form`).
@@ -26,20 +28,23 @@ La nueva vista hereda `stock.view_picking_form` y se carga después de la acció
 El botón utiliza `type="action"` y llama directamente al reporte propio; no llama
 a `do_print_picking()` ni altera el indicador `printed` del traslado.
 
-El dominio de la acción exige `picking_type_code = outgoing`, `sale_id` y estado
-`assigned` (Listo) o `done` (Hecho). El servidor vuelve a validar cada documento,
-incluyendo solicitudes directas al reporte. Un lote con una transferencia inválida
-se rechaza completo; no se omiten registros silenciosamente.
+El dominio de Salida exige `picking_type_code = outgoing`, `sale_id` y estado `assigned`
+(Listo) o `done` (Hecho). El dominio de Entrada exige `picking_type_code = incoming`,
+`purchase_id` y los mismos estados. El servidor vuelve a validar cada documento,
+incluyendo solicitudes directas al reporte. Un lote con una transferencia inválida se
+rechaza completo; no se omiten registros silenciosamente.
 
 Se consideran los movimientos no cancelados con demanda positiva antes de finalizar,
 o cantidad efectivamente movida positiva después de finalizar. Las líneas canceladas
 y cantidades cero no identifican vehículos para este documento.
 
-La venta se obtiene de `move_ids.sale_line_id.order_id`: debe ser única y coincidir
-con `picking.sale_id`. El vehículo se obtiene exclusivamente de
+La venta de Salida se obtiene de `move_ids.sale_line_id.order_id`: debe ser única y
+coincidir con `picking.sale_id`. La compra de Entrada se obtiene de
+`move_ids.purchase_line_id.order_id`: debe ser única y coincidir con `picking.purchase_id`.
+El vehículo se obtiene exclusivamente de
 `move_ids.product_id.product_tmpl_id.vehicle_id`. No se usa `origin` ni se recorren
-los productos de toda la orden de venta. Los movimientos del vehículo deben tener
-líneas de venta del mismo producto y de esa venta.
+los productos de toda la orden de venta o compra. Los movimientos del vehículo deben tener
+líneas del mismo producto en el documento origen correspondiente.
 
 Se rechazan: ausencia de vehículo, múltiples vehículos distintos, productos `is_fleet`
 sin vehículo y diferencias explícitas de compañía. Los productos accesorios sin indicador
@@ -64,9 +69,11 @@ compañía diferente se rechaza. Se mantienen los permisos normales, sin `sudo()
 
 | Dato | Fuente |
 | --- | --- |
-| Entregado a | `picking.partner_id`, después `sale.partner_shipping_id`, después `sale.partner_id` |
+| Entregado a (Salida) | `picking.partner_id`, después `sale.partner_shipping_id`, después `sale.partner_id` |
+| Recibido a (Entrada) | `picking.partner_id`, después `purchase.partner_id` |
 | Cédula, teléfono, correo | `vat`, `phone`, `email` del mismo contacto seleccionado |
-| Concepto | Texto fijo `ENTREGA DE VEHICULO` |
+| Concepto Salida | Texto fijo `ENTREGA DE VEHICULO` |
+| Concepto Entrada | Texto fijo `Adquisición FCR` |
 | Marca / modelo | `fleet.vehicle.brand_id.name` / `model_id.name` |
 | Año / placa / chasis | `model_year` / `license_plate` / `vin_sn` |
 | Odómetro | `odometer`, presentado sin decimales; `odometer_unit` como km o mi |
@@ -102,15 +109,15 @@ y 279.4 allí truncaría las dimensiones. El formato Letter conserva el tamaño 
 Se desactiva `smart shrinking` para respetar las medidas CSS en milímetros y evitar
 que wkhtmltopdf reduzca silenciosamente todo el documento.
 
-`static/src/img/vehicle_inspection.png` procede del documento Word de referencia
-`4. Conduce de salida.docx` para conservar la mejor nitidez disponible. `fcr_logo.png`
+`static/src/img/vehicle_inspection.png` procede del documento Word de referencia y se
+reutiliza en Entrada y Salida para conservar la mejor nitidez disponible. `fcr_logo.png`
 procede de la segunda imagen suministrada (Conduce de Salida, 842 × 1079 píxeles):
 x=248, y=59, ancho=344, alto=48.
 
-El texto legal y el pie se transcriben del formato de salida suministrado, conservando
+Los textos legales y el pie se transcriben de los formatos suministrados, conservando
 su redacción. El checklist y las líneas de Inspector/Cliente se completan a mano.
 Encabezado, datos de vehículo, checklist, firmas, pie y estilos son subplantillas
-compartidas; una futura entrada podrá reutilizarlas sin añadir ahora otra acción.
+compartidas entre Entrada y Salida.
 
 ## Pruebas
 

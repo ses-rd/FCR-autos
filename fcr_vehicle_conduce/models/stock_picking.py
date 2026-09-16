@@ -30,7 +30,7 @@ class StockPicking(models.Model):
             ))
         return date
 
-    def _get_vehicle_conduce_vehicle(self, moves):
+    def _get_vehicle_conduce_vehicle(self, moves, document_name):
         """Resolve Fleet through each moved product's template, never through SO lines."""
         self.ensure_one()
         products = moves.product_id
@@ -53,9 +53,10 @@ class StockPicking(models.Model):
         if len(vehicles) != 1:
             raise UserError(_(
                 'La transferencia %(picking)s contiene varios vehículos (%(vehicles)s). '
-                'El Conduce de Salida requiere exactamente un vehículo.',
+                '%(document_name)s requiere exactamente un vehículo.',
                 picking=self.display_name,
                 vehicles=', '.join(vehicles.mapped('display_name')),
+                document_name=document_name,
             ))
         vehicle = vehicles
         # Fleet's product_id/product_tmpl_id are independent, unsynchronised fields.
@@ -76,6 +77,20 @@ class StockPicking(models.Model):
         return vehicle.category_id.name or dict(
             vehicle._fields['vehicle_type']._description_selection(self.env)
         ).get(vehicle.vehicle_type, '')
+
+    def _get_vehicle_conduce_common_values(self, vehicle, date):
+        self.ensure_one()
+        return {
+            'picking': self,
+            'company': self.company_id,
+            'vehicle': vehicle,
+            'vehicle_type': self._get_vehicle_conduce_type(vehicle),
+            'odometer_unit': {'kilometers': 'km', 'miles': 'mi'}.get(vehicle.odometer_unit, ''),
+            'date': format_date(
+                self.env, fields.Datetime.context_timestamp(self, date).date(),
+                date_format='dd/MM/yyyy',
+            ),
+        }
 
     def _get_vehicle_conduce_outgoing_values(self):
         """Validate business rules even when rendering directly or in a mixed batch."""
@@ -101,7 +116,7 @@ class StockPicking(models.Model):
         sale = sales
         if sale.company_id != self.company_id:
             raise UserError(_('La venta y la transferencia deben pertenecer a la misma compañía.'))
-        vehicle = self._get_vehicle_conduce_vehicle(moves)
+        vehicle = self._get_vehicle_conduce_vehicle(moves, _('El Conduce de Salida'))
         vehicle_moves = moves.filtered(
             lambda move: move.product_id.product_tmpl_id.vehicle_id == vehicle
         )
@@ -119,15 +134,77 @@ class StockPicking(models.Model):
         if not partner:
             raise UserError(_('No se encontró el contacto destinatario de la entrega.'))
         return {
-            'picking': self,
-            'company': self.company_id,
+            **self._get_vehicle_conduce_common_values(vehicle, date),
+            'title': 'CONDUCE DE SALIDA',
+            'partner_label': 'Entregado a',
+            'concept': 'ENTREGA DE VEHICULO',
+            'legal_text': _(
+                'Atención: Por medio de la presente, es para verificar correctamente la entrega del vehículo. '
+                'Una vez recibido, se aceptan todas las condiciones indicadas en el presente documento y toda '
+                'las responsabilidades por daños provocados a la unidad con posterioridad a su entrega. '
+                'La aceptación de este documento conlleva a la conformidad con todo lo detallado en el mismo '
+                'y lo hace responsable ante cualquier incidente o falla que pueda comprometer a FCR AUTOS S.R.L., '
+                'o al titular de la matrícula hasta la ejecución del traspaso a su nombre. '
+                'No firme en caso de diferencia.'
+            ),
             'sale': sale,
             'partner': partner,
-            'vehicle': vehicle,
-            'vehicle_type': self._get_vehicle_conduce_type(vehicle),
-            'odometer_unit': {'kilometers': 'km', 'miles': 'mi'}.get(vehicle.odometer_unit, ''),
-            'date': format_date(
-                self.env, fields.Datetime.context_timestamp(self, date).date(),
-                date_format='dd/MM/yyyy',
+        }
+
+    def _get_vehicle_conduce_incoming_values(self):
+        """Validate receipt rules through purchase_stock relations, never origin text."""
+        self.ensure_one()
+        if self.picking_type_code != 'incoming':
+            raise UserError(_(
+                'El Conduce de Entrada solo corresponde a operaciones de entrada: %(picking)s.',
+                picking=self.display_name,
+            ))
+        date = self._get_vehicle_conduce_date()
+        moves = self._get_vehicle_conduce_moves()
+        purchases = moves.purchase_line_id.order_id
+        if not self.purchase_id or not purchases:
+            raise UserError(_(
+                'La transferencia %(picking)s no está vinculada a una compra mediante sus movimientos.',
+                picking=self.display_name,
+            ))
+        if len(purchases) != 1 or purchases != self.purchase_id:
+            raise UserError(_(
+                'La transferencia %(picking)s tiene relaciones de compra ambiguas o contradictorias.',
+                picking=self.display_name,
+            ))
+        purchase = purchases
+        if purchase.company_id != self.company_id:
+            raise UserError(_('La compra y la transferencia deben pertenecer a la misma compañía.'))
+        vehicle = self._get_vehicle_conduce_vehicle(moves, _('El Conduce de Entrada'))
+        vehicle_moves = moves.filtered(
+            lambda move: move.product_id.product_tmpl_id.vehicle_id == vehicle
+        )
+        if any(
+            move.purchase_line_id.order_id != purchase
+            or move.purchase_line_id.product_id != move.product_id
+            for move in vehicle_moves
+        ):
+            raise UserError(_(
+                'Los movimientos del vehículo en %(picking)s deben estar vinculados '
+                'a líneas del mismo producto en la compra correspondiente.',
+                picking=self.display_name,
+            ))
+        partner = self.partner_id or purchase.partner_id
+        if not partner:
+            raise UserError(_('No se encontró el contacto proveedor de la recepción.'))
+        return {
+            **self._get_vehicle_conduce_common_values(vehicle, date),
+            'title': 'CONDUCE DE ENTRADA',
+            'partner_label': 'Recibido a',
+            'concept': 'Adquisición FCR',
+            'legal_text': _(
+                'Acogiéndome a todas las estipulaciones contenidas en esta hoja de recepción, autorizo '
+                'a FCR AUTOS S.R.L. a servir como agente de venta del bien dado en garantía prendaria y '
+                'autorizo al potencial futuro comprador, a pagar directamente a FCR AUTOS S.R.L., la suma '
+                'acordada entre ambas partes, más comisiones por servicios de venta, intereses sobre el '
+                'avance de efectivo, gastos legales, gastos de almacenaje y cualquier otra suma resultante '
+                'del presente acuerdo.'
             ),
+            'purchase': purchase,
+            'partner': partner,
         }
