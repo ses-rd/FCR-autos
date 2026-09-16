@@ -1,0 +1,96 @@
+# FCR — Conduce de Salida (Odoo 19)
+
+Primera fase: un PDF de salida por transferencia, con un único vehículo.
+No implementa entradas, inspecciones digitales, firmas digitales ni modificaciones de inventario.
+
+## Instalación y dependencias
+
+Instalar `fcr_vehicle_conduce` y sus dependencias `eg_fleet_product_link`, `sale_stock` y `web`.
+`fleet`, `stock`, `product` y `account` llegan mediante esas dependencias.
+No depende de `purchase_stock`, `l10n_do_ecf`, facturas ni módulos de nómina.
+Los módulos estándar de Odoo no están incluidos en este repositorio.
+
+Configurar dirección, ciudad/provincia, teléfono, correo, web y RNC en la compañía
+de la transferencia. El encabezado utiliza esos valores reales, sin sustituir los vacíos
+por datos corporativos inventados. El logotipo FCR es el del formato proporcionado.
+
+## Impresión y validaciones
+
+En la transferencia: **Imprimir → Conduce de Salida**.
+El dominio de la acción exige `picking_type_code = outgoing`, `sale_id` y estado
+`assigned` (Listo) o `done` (Hecho). El servidor vuelve a validar cada documento,
+incluyendo solicitudes directas al reporte. Un lote con una transferencia inválida
+se rechaza completo; no se omiten registros silenciosamente.
+
+Se consideran los movimientos no cancelados con demanda positiva antes de finalizar,
+o cantidad efectivamente movida positiva después de finalizar. Las líneas canceladas
+y cantidades cero no identifican vehículos para este documento.
+
+La venta se obtiene de `move_ids.sale_line_id.order_id`: debe ser única y coincidir
+con `picking.sale_id`. El vehículo se obtiene exclusivamente de
+`move_ids.product_id.product_tmpl_id.vehicle_id`. No se usa `origin` ni se recorren
+los productos de toda la orden de venta. Los movimientos del vehículo deben tener
+líneas de venta del mismo producto y de esa venta.
+
+Se rechazan: ausencia de vehículo, múltiples vehículos, productos `is_fleet` sin
+vehículo, varios productos para el mismo vehículo, enlaces de retorno contradictorios,
+vehículo archivado y diferencias de compañía. Los productos accesorios sin indicador
+Fleet ni vehículo no cuentan como vehículos. No se buscan vehículos adicionales
+por nombre, placa, chasis o enlaces inversos. Los enlaces de retorno vacíos se toleran;
+si están informados, deben coincidir. No se impone unicidad global al módulo Fleet.
+
+## Mapeo y decisiones
+
+| Dato | Fuente |
+| --- | --- |
+| Entregado a | `picking.partner_id`, después `sale.partner_shipping_id`, después `sale.partner_id` |
+| Cédula, teléfono, correo | `vat`, `phone`, `email` del mismo contacto seleccionado |
+| Concepto | Texto fijo `ENTREGA DE VEHICULO` |
+| Marca / modelo | `fleet.vehicle.brand_id.name` / `model_id.name` |
+| Año / placa / chasis | `model_year` / `license_plate` / `vin_sn` |
+| Odómetro | `odometer`, presentado sin decimales; `odometer_unit` como km o mi |
+| Color | `color` |
+| Tipo provisional | `category_id.name`; si falta, etiqueta traducida de `vehicle_type` (car/bike) |
+| Fecha | `date_done` si está Hecho; `scheduled_date` si está Listo |
+
+La regla de fecha está encapsulada en `_get_vehicle_conduce_date()`. Una fecha ausente
+produce error. Se convierte a la zona horaria del usuario/contexto y se presenta como
+`dd/MM/yyyy`. No se utiliza la fecha actual como sustituto.
+Los datos personales ausentes se dejan vacíos; no se mezclan con los del contacto padre.
+
+El reporte consulta valores actuales: no guarda una fotografía histórica de los datos,
+no congela el odómetro y no reutiliza PDFs previamente adjuntados. Imprimir no cambia
+el estado del traslado. Una impresión en Listo no acredita una entrega completada.
+
+## Formato y recursos
+
+Carta vertical: 215.9 × 279.4 mm (8.5 × 11 pulgadas). Márgenes superior/inferior
+de 10 mm y laterales de 12 mm. Contenido de 164 mm de ancho. Fondo blanco y tinta
+oscura para impresión; el fondo oscuro de la captura se interpreta como modo de
+visualización. Se reorganizan los datos del vehículo en tres renglones para dejar
+espacio a un VIN completo y nombres reales. No se reproducen las X rojas de ejemplo.
+
+El registro específico de `report.paperformat` usa `format = Letter`: Odoo 19 almacena
+`page_width` y `page_height` personalizados como enteros, por lo que introducir 215.9
+y 279.4 allí truncaría las dimensiones. El formato Letter conserva el tamaño exacto.
+
+`static/src/img/vehicle_inspection.png` es un recorte exacto, sin redibujado,
+de la segunda imagen suministrada (Conduce de Salida, 842 × 1079 píxeles):
+rectángulo x=112, y=464, ancho=584, alto=363. `fcr_logo.png` procede de la misma imagen:
+x=248, y=59, ancho=344, alto=48. La resolución original limita la nitidez impresa.
+
+El texto legal y el pie se transcriben del formato de salida suministrado, conservando
+su redacción. El checklist y las líneas de Inspector/Cliente se completan a mano.
+Encabezado, datos de vehículo, checklist, firmas, pie y estilos son subplantillas
+compartidas; una futura entrada podrá reutilizarlas sin añadir ahora otra acción.
+
+## Pruebas
+
+En una base **de pruebas** con Odoo 19 y estas dependencias disponibles:
+
+`odoo-bin -d BASE_DE_PRUEBAS -i fcr_vehicle_conduce --test-enable --test-tags /fcr_vehicle_conduce --stop-after-init`
+
+La suite `tests/test_vehicle_conduce.py` utiliza `TransactionCase`, crea sus propios
+registros y cubre resolución, errores, fechas, dominio, tamaño de papel y render HTML
+QWeb. No depende de S00001, AP/OUT/00002 ni de ningún cliente o vehículo de producción.
+Validar también el PDF con wkhtmltopdf y la configuración real de Odoo antes de desplegar.
