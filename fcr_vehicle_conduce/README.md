@@ -102,10 +102,10 @@ y 279.4 allí truncaría las dimensiones. El formato Letter conserva el tamaño 
 Se desactiva `smart shrinking` para respetar las medidas CSS en milímetros y evitar
 que wkhtmltopdf reduzca silenciosamente todo el documento.
 
-`static/src/img/vehicle_inspection.png` es un recorte exacto, sin redibujado,
-de la segunda imagen suministrada (Conduce de Salida, 842 × 1079 píxeles):
-rectángulo x=112, y=464, ancho=584, alto=363. `fcr_logo.png` procede de la misma imagen:
-x=248, y=59, ancho=344, alto=48. La resolución original limita la nitidez impresa.
+`static/src/img/vehicle_inspection.png` procede del documento Word de referencia
+`4. Conduce de salida.docx` para conservar la mejor nitidez disponible. `fcr_logo.png`
+procede de la segunda imagen suministrada (Conduce de Salida, 842 × 1079 píxeles):
+x=248, y=59, ancho=344, alto=48.
 
 El texto legal y el pie se transcriben del formato de salida suministrado, conservando
 su redacción. El checklist y las líneas de Inspector/Cliente se completan a mano.
