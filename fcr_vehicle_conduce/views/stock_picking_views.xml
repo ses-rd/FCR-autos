@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_picking_form_vehicle_conduce" model="ir.ui.view">
+        <field name="name">stock.picking.form.vehicle.conduce</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <!-- Stock's header Print buttons execute specific standard reports.
+                 Add an independent action; do not replace either Print button. -->
+            <xpath expr="//header/button[@name='do_print_picking']" position="after">
+                <!-- Ensure the visibility field is loaded regardless of other views. -->
+                <field name="sale_id" invisible="True"/>
+                <button name="%(fcr_vehicle_conduce.action_report_vehicle_conduce_outgoing)d"
+                        type="action" string="Conduce de Salida"
+                        invisible="not id or picking_type_code != 'outgoing' or not sale_id or state not in ('assigned', 'done')"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
