@@ -8,6 +8,7 @@
         <field name="report_file">fcr_vehicle_conduce.report_vehicle_conduce_outgoing</field>
         <field name="binding_model_id" ref="stock.model_stock_picking"/>
         <field name="binding_type">report</field>
+        <field name="binding_view_types">list,form</field>
         <field name="paperformat_id" ref="paperformat_vehicle_conduce"/>
         <field name="print_report_name">'Conduce de Salida - %s' % object.name</field>
         <field name="domain">[('picking_type_code', '=', 'outgoing'), ('sale_id', '!=', False), ('state', 'in', ['assigned', 'done'])]</field>
