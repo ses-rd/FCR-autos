@@ -1,4 +1,7 @@
 from datetime import datetime
+from uuid import uuid4
+
+from lxml import html as html_parser
 
 from odoo.exceptions import UserError
 from odoo.tests import TransactionCase, tagged
@@ -16,9 +19,10 @@ class TestVehicleConduce(TransactionCase):
             'name': 'Conduce test recipient', 'parent_id': cls.customer.id, 'type': 'delivery',
             'phone': '809-555-0100', 'email': 'recipient@example.test',
         })
-        cls.warehouse = cls.env['stock.warehouse'].search([
-            ('company_id', '=', cls.env.company.id),
-        ], limit=1)
+        cls.warehouse = cls.env['stock.warehouse'].create({
+            'name': 'Conduce test warehouse', 'code': uuid4().hex[:5],
+            'company_id': cls.env.company.id,
+        })
         cls.brand = cls.env['fleet.vehicle.model.brand'].create({'name': 'Test brand'})
         cls.vehicle_model = cls.env['fleet.vehicle.model'].create({
             'name': 'Test model', 'brand_id': cls.brand.id,
@@ -82,6 +86,19 @@ class TestVehicleConduce(TransactionCase):
         picking.partner_id = False
         self.assertEqual(picking._get_vehicle_conduce_outgoing_values()['partner'], sale.partner_shipping_id)
 
+    def test_assigned_date_timezone_and_missing_date(self):
+        picking, _sale = self._picking()
+        picking.scheduled_date = datetime(2026, 6, 29, 1, 0)
+        self.assertEqual(
+            picking.with_context(tz='America/Santo_Domingo')._get_vehicle_conduce_outgoing_values()['date'],
+            '28/06/2026',
+        )
+        # Test the date rule on an in-memory record: the stored scheduling field
+        # has an inverse which may prevent clearing it through the normal UI.
+        empty_date = self.env['stock.picking'].new({'state': 'assigned', 'scheduled_date': False})
+        with self.assertRaisesRegex(UserError, 'fecha efectiva'):
+            empty_date._get_vehicle_conduce_date()
+
     def test_origin_does_not_establish_sale(self):
         picking, sale = self._picking(linked=False)
         picking.origin = sale.name
@@ -141,12 +158,76 @@ class TestVehicleConduce(TransactionCase):
         with self.assertRaisesRegex(UserError, 'movimientos del vehículo'):
             picking._get_vehicle_conduce_outgoing_values()
 
-    def test_inconsistent_backlink_rejected(self):
+    def test_stale_backlinks_do_not_override_moved_product(self):
+        picking, _sale = self._picking()
+        vehicle = picking.move_ids.product_id.product_tmpl_id.vehicle_id
+        other_product, _vehicle = self._vehicle_product()
+        vehicle.write({
+            'product_id': other_product.id,
+            'product_tmpl_id': other_product.product_tmpl_id.id,
+        })
+        self.assertEqual(picking._get_vehicle_conduce_outgoing_values()['vehicle'], vehicle)
+        vehicle.write({'product_id': False, 'product_tmpl_id': False})
+        self.assertEqual(picking._get_vehicle_conduce_outgoing_values()['vehicle'], vehicle)
+
+    def test_multiple_products_resolving_same_vehicle(self):
+        picking, sale = self._picking()
+        vehicle = picking.move_ids.product_id.product_tmpl_id.vehicle_id
+        product = self.env['product.product'].create({
+            'name': 'Historical vehicle product', 'type': 'consu', 'vehicle_id': vehicle.id,
+        })
+        line = self.env['sale.order.line'].create({'order_id': sale.id, 'product_id': product.id})
+        self._move(picking, product, line)
+        self.assertEqual(picking._get_vehicle_conduce_outgoing_values()['vehicle'], vehicle)
+
+    def test_archived_vehicle_and_unset_is_fleet(self):
+        picking, _sale = self._picking()
+        product = picking.move_ids.product_id
+        vehicle = product.product_tmpl_id.vehicle_id
+        product.is_fleet = False
+        vehicle.active = False
+        self.assertEqual(picking._get_vehicle_conduce_outgoing_values()['vehicle'], vehicle)
+
+    def test_accessory_does_not_count_as_vehicle(self):
+        picking, _sale = self._picking()
+        vehicle = picking.move_ids.product_id.product_tmpl_id.vehicle_id
+        accessory = self.env['product.product'].create({'name': 'Accessory', 'type': 'consu'})
+        self._move(picking, accessory)
+        self.assertEqual(picking._get_vehicle_conduce_outgoing_values()['vehicle'], vehicle)
+        accessory.is_fleet = True
+        with self.assertRaisesRegex(UserError, 'sin vínculo'):
+            picking._get_vehicle_conduce_outgoing_values()
+
+    def test_sale_line_product_mismatch_rejected(self):
         picking, _sale = self._picking()
         other_product, _vehicle = self._vehicle_product()
-        picking.move_ids.product_id.product_tmpl_id.vehicle_id.product_id = other_product
-        with self.assertRaisesRegex(UserError, 'contradictorio'):
+        picking.move_ids.sale_line_id.product_id = other_product
+        with self.assertRaises(UserError):
             picking._get_vehicle_conduce_outgoing_values()
+
+    def test_foreign_vehicle_company_rejected(self):
+        picking, _sale = self._picking()
+        company = self.env['res.company'].create({'name': 'Other conduce test company'})
+        picking.move_ids.product_id.product_tmpl_id.vehicle_id.company_id = company
+        with self.assertRaisesRegex(UserError, 'otra compañía'):
+            picking._get_vehicle_conduce_outgoing_values()
+
+    def test_type_fallback_and_shared_vehicle(self):
+        picking, _sale = self._picking()
+        vehicle = picking.move_ids.product_id.product_tmpl_id.vehicle_id
+        vehicle.write({'category_id': False, 'company_id': False})
+        expected = dict(vehicle._fields['vehicle_type']._description_selection(self.env))[vehicle.vehicle_type]
+        self.assertEqual(picking._get_vehicle_conduce_outgoing_values()['vehicle_type'], expected)
+
+    def test_empty_contact_fields_are_not_filled_from_parent(self):
+        picking, _sale = self._picking()
+        self.customer.write({'phone': '809-555-0199', 'email': 'parent@example.test'})
+        self.recipient.write({'phone': False, 'email': False, 'vat': False})
+        html, _kind = self.env['ir.actions.report']._render_qweb_html(self.report.report_name, picking.ids)
+        text = html_parser.fromstring(html).text_content()
+        self.assertIn(self.recipient.name, text)
+        self.assertNotIn('809-555-0199', text)
+        self.assertNotIn('parent@example.test', text)
 
     def test_done_date_and_timezone(self):
         picking, _sale = self._picking()
@@ -167,6 +248,10 @@ class TestVehicleConduce(TransactionCase):
             self.report_model._get_report_values([])
         with self.assertRaises(UserError):
             self.report_model._get_report_values([0])
+        with self.assertRaises(UserError):
+            self.report_model._get_report_values(None)
+        documents = self.report_model._get_report_values([valid.id, valid.id])
+        self.assertEqual(len(documents['conduce_documents']), 1)
 
     def test_print_domain_and_letter_format(self):
         picking, _sale = self._picking()
@@ -184,3 +269,30 @@ class TestVehicleConduce(TransactionCase):
         for text in ('CONDUCE DE SALIDA', 'TEST-CHASSIS', 'Conduce test recipient',
                      'vehicle_inspection.png', 'Inspector', 'Cliente', 'No firme en caso de diferencia.'):
             self.assertIn(text, html)
+
+    def test_render_escapes_dynamic_html_and_preserves_long_values(self):
+        picking, _sale = self._picking()
+        self.recipient.name = '<script>alert("test")</script> Cliente & Asociados ' + 'Nombre largo ' * 6
+        vehicle = picking.move_ids.product_id.product_tmpl_id.vehicle_id
+        vehicle.vin_sn = 'VIN' + '1234567890' * 5
+        html, _kind = self.env['ir.actions.report']._render_qweb_html(self.report.report_name, picking.ids)
+        document = html_parser.fromstring(html)
+        content = document.xpath('//div[contains(@class, "fcr-content")]')[0]
+        self.assertFalse(content.xpath('.//script'))
+        self.assertIn(self.recipient.name, content.text_content())
+        self.assertIn(vehicle.vin_sn, content.text_content())
+
+    def test_batch_html_and_printing_does_not_change_inventory(self):
+        first, _sale = self._picking()
+        second, _sale = self._picking()
+        pickings = first | second
+        before_pickings = pickings.read(['state', 'scheduled_date', 'date_done'])
+        before_moves = pickings.move_ids.read(['state', 'quantity', 'product_uom_qty'])
+        quant_domain = [('product_id', 'in', pickings.move_ids.product_id.ids)]
+        before_quants = self.env['stock.quant'].search(quant_domain).read(['quantity', 'reserved_quantity'])
+        html, _kind = self.env['ir.actions.report']._render_qweb_html(self.report.report_name, pickings.ids)
+        document = html_parser.fromstring(html)
+        self.assertEqual(len(document.xpath('//div[contains(@class, "fcr-conduce-article")]')), 2)
+        self.assertEqual(pickings.read(['state', 'scheduled_date', 'date_done']), before_pickings)
+        self.assertEqual(pickings.move_ids.read(['state', 'quantity', 'product_uom_qty']), before_moves)
+        self.assertEqual(self.env['stock.quant'].search(quant_domain).read(['quantity', 'reserved_quantity']), before_quants)

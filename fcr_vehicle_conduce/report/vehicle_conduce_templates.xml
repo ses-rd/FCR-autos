@@ -3,20 +3,22 @@
     <!-- Shared pieces deliberately contain no incoming/outgoing business logic. -->
     <template id="vehicle_conduce_styles">
         <style>
+            .fcr-conduce-article + .fcr-conduce-article { page-break-before: always; }
             .fcr-conduce { font-family: Arial, sans-serif; color: #171717; background: white;
                 font-size: 9pt; line-height: 1.2; padding: 0; }
             .fcr-conduce * { box-sizing: border-box; }
             .fcr-conduce .fcr-content { width: 164mm; margin: 0 auto; }
             .fcr-conduce .fcr-header { text-align: center; font-size: 9pt; color: #555; margin-bottom: 5mm; }
             .fcr-conduce .fcr-logo { width: 91mm; height: auto; margin: 2mm auto 1mm; }
-            .fcr-conduce .fcr-company-line { line-height: 1.2; overflow-wrap: break-word; }
+            .fcr-conduce .fcr-company-line { line-height: 1.2; word-wrap: break-word; }
             .fcr-conduce .fcr-date { text-align: right; margin: 0 0 2mm; }
             .fcr-conduce .fcr-title { text-align: center; font-size: 11pt; font-weight: bold; margin: 0 0 3mm; }
             .fcr-conduce .fcr-section-title { font-weight: bold; text-decoration: underline; margin: 0 0 3mm; }
             .fcr-conduce table { width: 100%; table-layout: fixed; border-collapse: collapse; border: 0;
                 font-size: inherit; line-height: inherit; }
             .fcr-conduce td { vertical-align: top; padding: 0.6mm 2mm 0.6mm 0; border: 0;
-                overflow-wrap: break-word; word-wrap: break-word; }
+                word-wrap: break-word; }
+            .fcr-conduce .fcr-code { word-break: break-all; }
             .fcr-conduce .fcr-section { margin-bottom: 3mm; }
             .fcr-conduce .fcr-inspection { width: 100%; height: auto; display: block; margin: 0 auto; }
             .fcr-conduce .fcr-legal { font-size: 7.5pt; line-height: 1.25; text-align: justify; margin: 2mm 0 0; }
@@ -32,12 +34,12 @@
     <template id="vehicle_conduce_header">
         <div class="fcr-header">
             <img class="fcr-logo" src="/fcr_vehicle_conduce/static/src/img/fcr_logo.png" alt="FCR AUTOS.COM"/>
-            <div class="fcr-company-line"><span t-field="company.street"/><t t-if="company.street2">, <span t-field="company.street2"/></t></div>
-            <div class="fcr-company-line"><span t-field="company.city"/><t t-if="company.state_id">, <span t-field="company.state_id.name"/></t></div>
-            <div class="fcr-company-line">Teléfono: <span t-field="company.phone"/></div>
-            <div class="fcr-company-line">E-mail: <span t-field="company.email"/></div>
-            <div class="fcr-company-line"><span t-field="company.website"/></div>
-            <div class="fcr-company-line">RNC: <span t-field="company.vat"/></div>
+            <div t-if="company.street or company.street2" class="fcr-company-line"><span t-field="company.street"/><t t-if="company.street and company.street2">, </t><span t-field="company.street2"/></div>
+            <div t-if="company.city or company.state_id" class="fcr-company-line"><span t-field="company.city"/><t t-if="company.city and company.state_id">, </t><span t-field="company.state_id.name"/></div>
+            <div t-if="company.phone" class="fcr-company-line">Teléfono: <span t-field="company.phone"/></div>
+            <div t-if="company.email" class="fcr-company-line">E-mail: <span class="fcr-code" t-field="company.email"/></div>
+            <div t-if="company.website" class="fcr-company-line"><span class="fcr-code" t-field="company.website"/></div>
+            <div t-if="company.vat" class="fcr-company-line">RNC: <span t-field="company.vat"/></div>
         </div>
     </template>
 
@@ -54,7 +56,7 @@
             <table>
                 <tr>
                     <td style="width: 20%">Placa: <span t-field="vehicle.license_plate"/></td>
-                    <td style="width: 43%">Chasis: <span t-field="vehicle.vin_sn"/></td>
+                    <td style="width: 43%">Chasis: <span class="fcr-code" t-field="vehicle.vin_sn"/></td>
                     <td style="width: 37%">Kms-Millas: <span t-field="vehicle.odometer" t-options="{'widget': 'float', 'precision': 0}"/> <span t-out="conduce['odometer_unit']"/></td>
                 </tr>
             </table>
@@ -92,7 +94,7 @@
         <t t-set="company" t-value="conduce['company']"/>
         <t t-set="partner" t-value="conduce['partner']"/>
         <t t-set="vehicle" t-value="conduce['vehicle']"/>
-        <div class="article" t-att-data-oe-model="o._name" t-att-data-oe-id="o.id" t-att-data-oe-lang="o.env.user.lang">
+        <div class="article fcr-conduce-article" t-att-data-oe-model="o._name" t-att-data-oe-id="o.id" t-att-data-oe-lang="o.env.user.lang">
             <div class="page fcr-conduce">
                 <t t-call="fcr_vehicle_conduce.vehicle_conduce_styles"/>
                 <div class="fcr-content">
@@ -110,7 +112,7 @@
                         </table>
                         <table>
                             <tr>
-                                <td style="width: 49%">E-mail: <span t-field="partner.email"/></td>
+                                <td style="width: 49%">E-mail: <span class="fcr-code" t-field="partner.email"/></td>
                                 <td style="width: 51%">Concepto: ENTREGA DE VEHICULO</td>
                             </tr>
                         </table>
