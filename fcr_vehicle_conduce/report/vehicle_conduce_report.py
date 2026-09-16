@@ -8,6 +8,8 @@ class VehicleConduceOutgoingReport(models.AbstractModel):
 
     @api.model
     def _get_report_values(self, docids, data=None):
+        # A direct report request can contain no ids or the same id more than once.
+        docids = list(dict.fromkeys(docids or []))
         pickings = self.env['stock.picking'].browse(docids).exists()
         if not pickings or set(pickings.ids) != set(docids):
             raise UserError(_('Seleccione transferencias existentes para imprimir el Conduce de Salida.'))

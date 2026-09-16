@@ -58,31 +58,24 @@ class StockPicking(models.Model):
                 vehicles=', '.join(vehicles.mapped('display_name')),
             ))
         vehicle = vehicles
-        vehicle_products = products.filtered(
-            lambda product: product.product_tmpl_id.vehicle_id == vehicle
-        )
-        if len(vehicle_products) != 1:
+        # Fleet's product_id/product_tmpl_id are independent, unsynchronised fields.
+        # They are not an inverse of product.template.vehicle_id and may be stale.
+        # Multiple products pointing to this same record do not make it ambiguous.
+        # Archived vehicles remain valid for reprinting historical transfers.
+        if vehicle.company_id and vehicle.company_id != self.company_id:
             raise UserError(_(
-                'Varios productos de %(picking)s apuntan al mismo vehículo. '
-                'Corrija el vínculo producto–vehículo antes de imprimir.',
-                picking=self.display_name,
-            ))
-        product = vehicle_products
-        if (
-            (vehicle.product_id and vehicle.product_id != product)
-            or (vehicle.product_tmpl_id and vehicle.product_tmpl_id != product.product_tmpl_id)
-        ):
-            raise UserError(_(
-                'El vínculo entre el producto y el vehículo %(vehicle)s es contradictorio. '
-                'Revise los productos vinculados en Fleet.',
-                vehicle=vehicle.display_name,
-            ))
-        if not vehicle.active or (vehicle.company_id and vehicle.company_id != self.company_id):
-            raise UserError(_(
-                'El vehículo %(vehicle)s está archivado o pertenece a otra compañía.',
+                'El vehículo %(vehicle)s pertenece a otra compañía.',
                 vehicle=vehicle.display_name,
             ))
         return vehicle
+
+    def _get_vehicle_conduce_type(self, vehicle):
+        """Provisional body/type label: existing category, then car/bike label."""
+        self.ensure_one()
+        vehicle.ensure_one()
+        return vehicle.category_id.name or dict(
+            vehicle._fields['vehicle_type']._description_selection(self.env)
+        ).get(vehicle.vehicle_type, '')
 
     def _get_vehicle_conduce_outgoing_values(self):
         """Validate business rules even when rendering directly or in a mixed batch."""
@@ -125,17 +118,13 @@ class StockPicking(models.Model):
         partner = self.partner_id or sale.partner_shipping_id or sale.partner_id
         if not partner:
             raise UserError(_('No se encontró el contacto destinatario de la entrega.'))
-        # Category is the closest existing field to SUV/pickup/etc.; fall back to car/bike.
-        vehicle_type = vehicle.category_id.name or dict(
-            vehicle._fields['vehicle_type']._description_selection(self.env)
-        ).get(vehicle.vehicle_type, '')
         return {
             'picking': self,
             'company': self.company_id,
             'sale': sale,
             'partner': partner,
             'vehicle': vehicle,
-            'vehicle_type': vehicle_type,
+            'vehicle_type': self._get_vehicle_conduce_type(vehicle),
             'odometer_unit': {'kilometers': 'km', 'miles': 'mi'}.get(vehicle.odometer_unit, ''),
             'date': format_date(
                 self.env, fields.Datetime.context_timestamp(self, date).date(),

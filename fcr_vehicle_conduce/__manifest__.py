@@ -1,6 +1,6 @@
 {
     'name': 'FCR - Conduce de vehículos',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.0.1',
     'summary': 'Conduce de salida desde entregas de vehículos vinculadas a ventas',
     'author': 'SEGU',
     'category': 'Inventory/Inventory',
