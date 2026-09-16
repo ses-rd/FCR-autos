@@ -7,9 +7,11 @@
     'license': 'LGPL-3',
     'depends': ['eg_fleet_product_link', 'purchase_stock', 'sale_stock', 'web'],
     'data': [
+        'security/ir.model.access.csv',
         'report/vehicle_conduce_paperformat.xml',
         'report/vehicle_conduce_templates.xml',
         'report/vehicle_conduce_actions.xml',
+        'views/vehicle_conduce_views.xml',
         'views/stock_picking_views.xml',
     ],
     'installable': True,

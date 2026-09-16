@@ -28,6 +28,25 @@ La nueva vista hereda `stock.view_picking_form` y se carga después de la acció
 El botón utiliza `type="action"` y llama directamente al reporte propio; no llama
 a `do_print_picking()` ni altera el indicador `printed` del traslado.
 
+## Checklist digital
+
+Los botones **Checklist Conduce de Entrada** y **Checklist Conduce de Salida** abren
+o crean un registro `fcr.vehicle.conduce` para la transferencia. La creación reutiliza
+las mismas validaciones Python de los PDF: tipo de operación, documento origen, fecha,
+contacto y vehículo inequívoco. Si ya existe un conduce del mismo tipo para el picking,
+se abre ese mismo registro y no se crean duplicados.
+
+`fcr.vehicle.conduce` guarda la referencia al picking, tipo, compañía, vehículo,
+contacto, fecha documental, inspector creador, estado y los checks booleanos del formato
+actual. Los permisos se conceden a `stock.group_stock_user` para lectura, creación y
+edición; no se usa `sudo()`.
+
+La fase actual no congela todos los datos del vehículo/contacto. Para la fase de firma,
+la propuesta es crear campos snapshot editados solo al completar/firmar: nombre/contacto,
+identificación, teléfono, correo, campos del vehículo, fecha formateada y textos legales.
+El PDF firmado debería leer primero esos snapshots y solo caer a los related actuales si
+el conduce sigue en borrador.
+
 El dominio de Salida exige `picking_type_code = outgoing`, `sale_id` y estado `assigned`
 (Listo) o `done` (Hecho). El dominio de Entrada exige `picking_type_code = incoming`,
 `purchase_id` y los mismos estados. El servidor vuelve a validar cada documento,

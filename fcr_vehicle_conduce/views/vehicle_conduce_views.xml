@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_vehicle_conduce_form" model="ir.ui.view">
+        <field name="name">fcr.vehicle.conduce.form</field>
+        <field name="model">fcr.vehicle.conduce</field>
+        <field name="arch" type="xml">
+            <form string="Conduce de vehículo">
+                <header>
+                    <button name="action_mark_completed" type="object" string="Completar"
+                            class="btn-primary" invisible="state != 'draft'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group string="Datos generales">
+                        <group>
+                            <field name="conduce_type"/>
+                            <field name="picking_id"/>
+                            <field name="vehicle_id"/>
+                            <field name="partner_id"/>
+                        </group>
+                        <group>
+                            <field name="date"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="inspector_id"/>
+                            <field name="completed_by_id" invisible="state != 'done'"/>
+                            <field name="completed_date" invisible="state != 'done'"/>
+                        </group>
+                    </group>
+                    <group string="Datos del vehículo">
+                        <group>
+                            <field name="vehicle_brand_id"/>
+                            <field name="vehicle_model_id"/>
+                            <field name="vehicle_model_year"/>
+                            <field name="vehicle_license_plate"/>
+                        </group>
+                        <group>
+                            <field name="vehicle_vin_sn"/>
+                            <field name="vehicle_odometer"/>
+                            <field name="vehicle_color"/>
+                            <field name="vehicle_category_id"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Interior / Equipamiento">
+                            <group>
+                                <group>
+                                    <field name="check_lights"/>
+                                    <field name="check_gauges"/>
+                                    <field name="check_horns"/>
+                                    <field name="check_ac_vents"/>
+                                    <field name="check_rearview_mirrors"/>
+                                    <field name="check_glasses"/>
+                                    <field name="check_window_switches"/>
+                                </group>
+                                <group>
+                                    <field name="check_radio"/>
+                                    <field name="check_cassette_player"/>
+                                    <field name="check_cd_changer"/>
+                                    <field name="check_antenna"/>
+                                    <field name="check_air_conditioning"/>
+                                    <field name="check_cup_holder"/>
+                                    <field name="check_lighter"/>
+                                </group>
+                                <group>
+                                    <field name="check_center_console_lid"/>
+                                    <field name="check_ashtray"/>
+                                    <field name="check_headliner"/>
+                                    <field name="check_seat_upholstery"/>
+                                    <field name="check_moldings"/>
+                                    <field name="check_floor_mats"/>
+                                    <field name="check_door_lining"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Motor / Accesorios / Herramientas">
+                            <group>
+                                <group>
+                                    <field name="check_oil_dipstick"/>
+                                    <field name="check_atf_dipstick"/>
+                                    <field name="check_engine_oil_cap"/>
+                                    <field name="check_hydraulic_oil_cap"/>
+                                    <field name="check_coolant_cap"/>
+                                    <field name="check_radiator_cap"/>
+                                </group>
+                                <group>
+                                    <field name="check_battery_no_7"/>
+                                    <field name="check_battery_terminal_cover"/>
+                                    <field name="check_engine_cover"/>
+                                    <field name="check_bumper_converter_cover"/>
+                                    <field name="check_lens"/>
+                                    <field name="check_wheel_center_cap"/>
+                                </group>
+                                <group>
+                                    <field name="check_spare_tire"/>
+                                    <field name="check_wheel_wrench"/>
+                                    <field name="check_jack"/>
+                                    <field name="check_keys"/>
+                                    <field name="check_pliers"/>
+                                    <field name="check_screwdriver"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_vehicle_conduce_list" model="ir.ui.view">
+        <field name="name">fcr.vehicle.conduce.list</field>
+        <field name="model">fcr.vehicle.conduce</field>
+        <field name="arch" type="xml">
+            <list string="Conduces de vehículos">
+                <field name="name"/>
+                <field name="conduce_type"/>
+                <field name="picking_id"/>
+                <field name="vehicle_id"/>
+                <field name="partner_id"/>
+                <field name="date"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_vehicle_conduce" model="ir.actions.act_window">
+        <field name="name">Conduces de vehículos</field>
+        <field name="res_model">fcr.vehicle.conduce</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{}</field>
+    </record>
+</odoo>
