@@ -680,7 +680,7 @@ class TestVehicleConduce(TransactionCase):
         document = html_parser.fromstring(html_text)
         content = document.xpath('//div[contains(@class, "fcr-content")]')[0]
         self.assertIn('CONDUCE DE ENTRADA', html_text)
-        self.assertIn('vehicle_inspection.png', html_text)
+        self.assertIn('vehicle_inspection_drawings.png', html_text)
         self.assertIn('Acogiéndome', html_text)
         self.assertFalse(content.xpath('.//script'))
         self.assertIn(vendor.name, content.text_content())
@@ -987,25 +987,36 @@ class TestVehicleConduce(TransactionCase):
         self.assertEqual(product.product_tmpl_id.read(['is_fleet', 'vehicle_id'])[0], before_template)
         self.assertEqual(self.env['stock.quant'].search(quant_domain).read(['quantity', 'reserved_quantity']), before_quants)
 
-    def test_checklist_mark_mapping_covers_all_check_fields(self):
+    def test_checklist_columns_cover_all_check_fields_in_order(self):
         Conduce = self.env['fcr.vehicle.conduce']
         self.assertEqual(len(Conduce._get_checklist_fields()), 39)
-        self.assertEqual(set(Conduce._get_checklist_fields()), set(Conduce._get_checklist_mark_coordinates()))
+        configured_fields = [
+            field_name
+            for _title, field_names in Conduce.CHECKLIST_COLUMNS
+            for field_name in field_names
+        ]
+        self.assertEqual(configured_fields, list(Conduce._get_checklist_fields()))
         for field_name in Conduce._get_checklist_fields():
             self.assertIn(field_name, Conduce._fields)
+        # Coordinates are kept for backward compatibility but are no longer used by the PDF template.
+        self.assertEqual(set(Conduce._get_checklist_fields()), set(Conduce._get_checklist_mark_coordinates()))
         Conduce._validate_checklist_mark_mapping()
 
-    def test_pdf_check_marks_reflect_saved_booleans(self):
+    def test_pdf_checklist_columns_reflect_saved_booleans(self):
         picking, _sale = self._picking()
         conduce = self.env['fcr.vehicle.conduce'].browse(
             picking.action_open_vehicle_conduce_outgoing()['res_id']
         )
         conduce.write({'check_lights': True, 'check_radio': False, 'check_keys': True})
-        marks = conduce._get_pdf_values()['check_marks']
-        marked_fields = {mark['field'] for mark in marks}
-        self.assertIn('check_lights', marked_fields)
-        self.assertIn('check_keys', marked_fields)
-        self.assertNotIn('check_radio', marked_fields)
+        items = {
+            item['field']: item
+            for column in conduce._get_pdf_values()['checklist_columns']
+            for item in column['items']
+        }
+        self.assertTrue(items['check_lights']['checked'])
+        self.assertTrue(items['check_keys']['checked'])
+        self.assertFalse(items['check_radio']['checked'])
+        self.assertEqual(items['check_lights']['label'], 'Luces')
 
     def test_completion_requires_both_signatures(self):
         picking, _sale = self._picking()
@@ -1037,7 +1048,7 @@ class TestVehicleConduce(TransactionCase):
         self.assertEqual(final_values['vehicle_vin_sn'], snapshot_vin)
         self.assertNotEqual(final_values['partner_name'], self.recipient.name)
         self.assertNotEqual(final_values['vehicle_vin_sn'], conduce.vehicle_id.vin_sn)
-        self.assertIn('check_lights', {mark['field'] for mark in final_values['check_marks']})
+        self.assertTrue({item['field']: item for column in final_values['checklist_columns'] for item in column['items']}['check_lights']['checked'])
 
     def test_completed_digital_conduce_is_immutable(self):
         picking, _sale = self._picking()
@@ -1140,8 +1151,11 @@ class TestVehicleConduce(TransactionCase):
         html, _kind = self.env['ir.actions.report']._render_qweb_html(self.report.report_name, picking.ids)
         html = html.decode()
         for text in ('CONDUCE DE SALIDA', 'TEST-CHASSIS', 'Conduce test recipient',
-                     'vehicle_inspection.png', 'Inspector', 'Cliente', 'No firme en caso de diferencia.'):
+                     'vehicle_inspection_drawings.png', 'Luces', 'Relojes', 'Inspector',
+                     'Cliente', 'No firme en caso de diferencia.'):
             self.assertIn(text, html)
+        self.assertNotIn('fcr-checkmark', html)
+        self.assertNotIn('position: absolute', html)
 
     def test_render_escapes_dynamic_html_and_preserves_long_values(self):
         picking, _sale = self._picking()
