@@ -32,21 +32,49 @@ class StockPicking(models.Model):
             ))
         return date
 
-    def _get_vehicle_conduce_vehicle(self, moves, document_name):
-        """Resolve Fleet through each moved product's template, never through SO lines."""
+    def _get_vehicle_conduce_product_vehicles(self, product):
+        """Resolve Fleet using only explicit product links maintained by this project."""
         self.ensure_one()
-        products = moves.product_id
-        missing = products.filtered(
-            lambda product: product.product_tmpl_id.is_fleet
-            and not product.product_tmpl_id.vehicle_id
+        product.ensure_one()
+        FleetVehicle = self.env['fleet.vehicle'].with_context(active_test=False)
+        template = product.product_tmpl_id
+        vehicles = FleetVehicle.browse(template.vehicle_id.ids)
+        vehicles |= FleetVehicle.search([
+            '|',
+            ('product_id', '=', product.id),
+            ('product_tmpl_id', '=', template.id),
+        ])
+        return vehicles.exists()
+
+    def _get_vehicle_conduce_move_vehicles(self, move):
+        self.ensure_one()
+        move.ensure_one()
+        return self._get_vehicle_conduce_product_vehicles(move.product_id)
+
+    def _get_vehicle_conduce_moves_for_vehicle(self, moves, vehicle):
+        """Return moves whose product explicitly resolves to the selected vehicle."""
+        self.ensure_one()
+        vehicle.ensure_one()
+        return moves.filtered(
+            lambda move: vehicle.id in self._get_vehicle_conduce_move_vehicles(move).ids
         )
+
+    def _get_vehicle_conduce_vehicle(self, moves, document_name):
+        """Resolve one Fleet vehicle from the moved products through explicit links only."""
+        self.ensure_one()
+        vehicles = self.env['fleet.vehicle'].with_context(active_test=False)
+        missing = self.env['product.product']
+        for product in moves.product_id:
+            product_vehicles = self._get_vehicle_conduce_product_vehicles(product)
+            if product.product_tmpl_id.is_fleet and not product_vehicles:
+                missing |= product
+            vehicles |= product_vehicles
         if missing:
             raise UserError(_(
                 'Hay productos marcados como vehículo sin vínculo con Fleet en %(picking)s: %(products)s.',
                 picking=self.display_name,
                 products=', '.join(missing.mapped('display_name')),
             ))
-        vehicles = products.product_tmpl_id.vehicle_id
         if not vehicles:
             raise UserError(_(
                 'No hay un vehículo de Fleet asociado a los productos de la transferencia %(picking)s.',
@@ -61,9 +89,9 @@ class StockPicking(models.Model):
                 document_name=document_name,
             ))
         vehicle = vehicles
-        # Fleet's product_id/product_tmpl_id are independent, unsynchronised fields.
-        # They are not an inverse of product.template.vehicle_id and may be stale.
-        # Multiple products pointing to this same record do not make it ambiguous.
+        # The Fleet/Product link module stores explicit links on both sides.
+        # They can become temporarily incomplete after data edits, so all three
+        # explicit relations are accepted, but conflicting vehicles are rejected.
         # Archived vehicles remain valid for reprinting historical transfers.
         if vehicle.company_id and vehicle.company_id != self.company_id:
             raise UserError(_(
@@ -120,9 +148,7 @@ class StockPicking(models.Model):
         if sale.company_id != self.company_id:
             raise UserError(_('La venta y la transferencia deben pertenecer a la misma compañía.'))
         vehicle = self._get_vehicle_conduce_vehicle(moves, _('El Conduce de Salida'))
-        vehicle_moves = moves.filtered(
-            lambda move: move.product_id.product_tmpl_id.vehicle_id == vehicle
-        )
+        vehicle_moves = self._get_vehicle_conduce_moves_for_vehicle(moves, vehicle)
         if any(
             move.sale_line_id.order_id != sale
             or move.sale_line_id.product_id != move.product_id
@@ -179,9 +205,7 @@ class StockPicking(models.Model):
         if purchase.company_id != self.company_id:
             raise UserError(_('La compra y la transferencia deben pertenecer a la misma compañía.'))
         vehicle = self._get_vehicle_conduce_vehicle(moves, _('El Conduce de Entrada'))
-        vehicle_moves = moves.filtered(
-            lambda move: move.product_id.product_tmpl_id.vehicle_id == vehicle
-        )
+        vehicle_moves = self._get_vehicle_conduce_moves_for_vehicle(moves, vehicle)
         if any(
             move.purchase_line_id.order_id != purchase
             or move.purchase_line_id.product_id != move.product_id
