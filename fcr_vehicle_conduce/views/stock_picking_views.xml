@@ -30,6 +30,21 @@
                        invisible="picking_type_code != 'incoming'"
                        readonly="purchase_id"/>
             </xpath>
+            <xpath expr="//sheet/notebook" position="inside">
+                <page string="Firmas Conduce"
+                      invisible="not id or state not in ('assigned', 'done') or (picking_type_code != 'outgoing' and (picking_type_code != 'incoming' or (not purchase_id and vehicle_entry_type != 'consignment')))">
+                    <group>
+                        <group string="Inspector">
+                            <field name="vehicle_conduce_inspector_name" placeholder="Nombre del inspector"/>
+                            <field name="vehicle_conduce_inspector_signature" widget="signature"/>
+                        </group>
+                        <group string="Cliente">
+                            <field name="vehicle_conduce_customer_name" placeholder="Nombre del cliente"/>
+                            <field name="vehicle_conduce_customer_signature" widget="signature"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
         </field>
     </record>
 </odoo>
