@@ -200,6 +200,7 @@ class FcrVehicleConduce(models.Model):
     snapshot_inspector_name = fields.Char(string='Snapshot nombre inspector', readonly=True, copy=False)
     snapshot_inspector_signature = fields.Binary(string='Snapshot firma inspector', attachment=True, readonly=True, copy=False)
     snapshot_inspector_signed_at = fields.Datetime(string='Snapshot fecha firma inspector', readonly=True, copy=False)
+    snapshot_client_name = fields.Char(string='Snapshot nombre cliente', readonly=True, copy=False)
     snapshot_client_signature = fields.Binary(string='Snapshot firma cliente', attachment=True, readonly=True, copy=False)
     snapshot_client_signed_at = fields.Datetime(string='Snapshot fecha firma cliente', readonly=True, copy=False)
     snapshot_check_lights = fields.Boolean(string='Snapshot check_lights', readonly=True, copy=False)
@@ -297,7 +298,10 @@ class FcrVehicleConduce(models.Model):
     @api.constrains('state', 'inspector_signature', 'client_signature')
     def _check_done_signatures(self):
         for conduce in self:
-            if conduce.state == 'done' and (not conduce.inspector_signature or not conduce.client_signature):
+            if conduce.state != 'done':
+                continue
+            signatures = conduce._get_signature_values()
+            if not signatures['inspector_signature'] or not signatures['client_signature']:
                 raise ValidationError(_('El conduce completado debe tener firma de inspector y cliente.'))
 
     @api.model
@@ -367,10 +371,25 @@ class FcrVehicleConduce(models.Model):
             date_format='dd/MM/yyyy',
         )
 
+    def _get_signature_values(self, values=None):
+        self.ensure_one()
+        values = values or self._get_expected_conduce_values()
+        picking = self.picking_id
+        partner = values['partner']
+        inspector_name = picking.vehicle_conduce_inspector_name or self.inspector_id.name or self.env.user.name
+        client_name = picking.vehicle_conduce_customer_name or partner.name
+        return {
+            'inspector_name': inspector_name,
+            'inspector_signature': picking.vehicle_conduce_inspector_signature or self.inspector_signature,
+            'client_name': client_name,
+            'client_signature': picking.vehicle_conduce_customer_signature or self.client_signature,
+        }
+
     def _snapshot_values(self, values, completion_date):
         self.ensure_one()
         partner = values['partner']
         vehicle = values['vehicle']
+        signatures = self._get_signature_values(values)
         snapshot = {
             'snapshot_date': values['date_raw'],
             'snapshot_title': values['title'],
@@ -391,10 +410,11 @@ class FcrVehicleConduce(models.Model):
             'snapshot_vehicle_color': vehicle.color,
             'snapshot_vehicle_type': values['vehicle_type'],
             'snapshot_inspector_id': self.inspector_id.id,
-            'snapshot_inspector_name': self.inspector_id.name,
-            'snapshot_inspector_signature': self.inspector_signature,
+            'snapshot_inspector_name': signatures['inspector_name'],
+            'snapshot_inspector_signature': signatures['inspector_signature'],
             'snapshot_inspector_signed_at': self.inspector_signed_at or completion_date,
-            'snapshot_client_signature': self.client_signature,
+            'snapshot_client_name': signatures['client_name'],
+            'snapshot_client_signature': signatures['client_signature'],
             'snapshot_client_signed_at': self.client_signed_at or completion_date,
         }
         for field_name in self.CHECKLIST_FIELDS:
@@ -406,11 +426,12 @@ class FcrVehicleConduce(models.Model):
         for conduce in self:
             if conduce.state != 'draft':
                 raise UserError(_('Solo puede completar conduces en borrador.'))
-            if not conduce.inspector_signature:
-                raise UserError(_('Debe registrar la firma del inspector antes de completar el conduce.'))
-            if not conduce.client_signature:
-                raise UserError(_('Debe registrar la firma del cliente antes de completar el conduce.'))
             values = conduce._get_expected_conduce_values()
+            signatures = conduce._get_signature_values(values)
+            if not signatures['inspector_signature']:
+                raise UserError(_('Debe registrar la firma del inspector antes de completar el conduce.'))
+            if not signatures['client_signature']:
+                raise UserError(_('Debe registrar la firma del cliente antes de completar el conduce.'))
             if conduce.vehicle_id != values['vehicle'] or conduce.partner_id != values['partner']:
                 raise UserError(_('El vehículo o contacto del conduce ya no coincide con la transferencia.'))
             completion_date = fields.Datetime.now()
@@ -471,7 +492,9 @@ class FcrVehicleConduce(models.Model):
                 'vehicle_type': self.snapshot_vehicle_type,
                 'date_raw': self.snapshot_date,
                 'date': self._format_date(self.snapshot_date),
+                'inspector_name': self.snapshot_inspector_name,
                 'inspector_signature': self.snapshot_inspector_signature,
+                'client_name': self.snapshot_client_name or self.snapshot_partner_name,
                 'client_signature': self.snapshot_client_signature,
                 'check_marks': self._get_active_check_marks(),
                 'state': self.state,
@@ -479,6 +502,7 @@ class FcrVehicleConduce(models.Model):
         values = self._get_expected_conduce_values()
         partner = values['partner']
         vehicle = values['vehicle']
+        signatures = self._get_signature_values(values)
         return {
             **values,
             'conduce_record': self,
@@ -493,8 +517,10 @@ class FcrVehicleConduce(models.Model):
             'vehicle_vin_sn': vehicle.vin_sn,
             'vehicle_odometer': vehicle.odometer,
             'vehicle_color': vehicle.color,
-            'inspector_signature': self.inspector_signature,
-            'client_signature': self.client_signature,
+            'inspector_name': signatures['inspector_name'],
+            'inspector_signature': signatures['inspector_signature'],
+            'client_name': signatures['client_name'],
+            'client_signature': signatures['client_signature'],
             'check_marks': self._get_active_check_marks(),
             'state': self.state,
         }
