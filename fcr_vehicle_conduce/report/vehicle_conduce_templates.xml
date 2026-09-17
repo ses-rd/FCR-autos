@@ -21,13 +21,18 @@
             .fcr-conduce .fcr-code { word-break: break-all; }
             .fcr-conduce .fcr-section { margin-bottom: 2mm; }
             .fcr-conduce .fcr-inspection-block { page-break-inside: avoid; margin-top: 0.5mm; }
-            .fcr-conduce .fcr-inspection-graphic { text-align: center; margin: 0 auto 0.8mm; }
-            .fcr-conduce .fcr-inspection { width: 128mm; max-width: 100%; height: auto; }
-            .fcr-conduce .fcr-checklist-grid { font-size: 6.8pt; line-height: 1.05; }
-            .fcr-conduce .fcr-checklist-grid td { width: 25%; padding: 0 1.2mm 0 0; vertical-align: top; }
-            .fcr-conduce .fcr-checklist-title { font-weight: bold; font-size: 6.5pt; margin-bottom: 0.4mm; }
+            .fcr-conduce .fcr-inspection-board { width: 156mm; height: 105.8mm; margin: 0 auto; position: relative; }
+            .fcr-conduce .fcr-inspection { width: 156mm; height: auto; display: block; }
+            .fcr-conduce .fcr-checklist-panel { position: absolute; font-size: 6.6pt; line-height: 1.06; background: transparent; }
             .fcr-conduce .fcr-check-item { white-space: nowrap; }
-            .fcr-conduce .fcr-check-symbol { display: inline-block; width: 3.2mm; font-weight: bold; text-align: center; }
+            .fcr-conduce .fcr-check-symbol { display: inline-block; width: 3mm; font-weight: bold; text-align: center; }
+            .fcr-conduce .fcr-panel-indicators { left: 34mm; top: 11mm; width: 28mm; }
+            .fcr-conduce .fcr-panel-audio { left: 64mm; top: 11mm; width: 36mm; }
+            .fcr-conduce .fcr-panel-interior { left: 49mm; top: 58mm; width: 29mm; }
+            .fcr-conduce .fcr-panel-engine-left { left: 3mm; top: 92mm; width: 32mm; }
+            .fcr-conduce .fcr-panel-engine-right { left: 34mm; top: 89mm; width: 42mm; }
+            .fcr-conduce .fcr-panel-exterior { left: 96mm; top: 88mm; width: 40mm; }
+            .fcr-conduce .fcr-panel-tools { left: 132mm; top: 88mm; width: 23mm; }
             .fcr-conduce .fcr-legal { font-size: 7.3pt; line-height: 1.16; text-align: justify; margin: 1mm 0 0; }
             .fcr-conduce .fcr-signatures { margin-top: 2.5mm; page-break-inside: avoid; }
             .fcr-conduce .fcr-signature-box { width: 60mm; height: 13mm; border-bottom: 0.3mm solid #333; }
@@ -98,26 +103,48 @@
         </div>
     </template>
 
+    <template id="vehicle_conduce_checklist_items">
+        <t t-foreach="items" t-as="item">
+            <div class="fcr-check-item">
+                <span class="fcr-check-symbol" t-out="'✓' if item['checked'] else ' '"/>
+                <span t-out="item['label']"/>
+            </div>
+        </t>
+    </template>
+
     <template id="vehicle_conduce_inspection">
         <div class="fcr-inspection-block">
-            <div class="fcr-inspection-graphic">
+            <div class="fcr-inspection-board">
                 <img class="fcr-inspection" src="/fcr_vehicle_conduce/static/src/img/vehicle_inspection_drawings.png" alt="Referencia gráfica de inspección del vehículo"/>
+                <div class="fcr-checklist-panel fcr-panel-indicators">
+                    <t t-set="items" t-value="conduce['checklist_columns'][0]['items']"/>
+                    <t t-call="fcr_vehicle_conduce.vehicle_conduce_checklist_items"/>
+                </div>
+                <div class="fcr-checklist-panel fcr-panel-audio">
+                    <t t-set="items" t-value="conduce['checklist_columns'][1]['items']"/>
+                    <t t-call="fcr_vehicle_conduce.vehicle_conduce_checklist_items"/>
+                </div>
+                <div class="fcr-checklist-panel fcr-panel-interior">
+                    <t t-set="items" t-value="conduce['checklist_columns'][2]['items'][:4]"/>
+                    <t t-call="fcr_vehicle_conduce.vehicle_conduce_checklist_items"/>
+                </div>
+                <div class="fcr-checklist-panel fcr-panel-engine-left">
+                    <t t-set="items" t-value="conduce['checklist_columns'][2]['items'][4:8]"/>
+                    <t t-call="fcr_vehicle_conduce.vehicle_conduce_checklist_items"/>
+                </div>
+                <div class="fcr-checklist-panel fcr-panel-engine-right">
+                    <t t-set="items" t-value="conduce['checklist_columns'][2]['items'][8:]"/>
+                    <t t-call="fcr_vehicle_conduce.vehicle_conduce_checklist_items"/>
+                </div>
+                <div class="fcr-checklist-panel fcr-panel-exterior">
+                    <t t-set="items" t-value="conduce['checklist_columns'][3]['items'][:5]"/>
+                    <t t-call="fcr_vehicle_conduce.vehicle_conduce_checklist_items"/>
+                </div>
+                <div class="fcr-checklist-panel fcr-panel-tools">
+                    <t t-set="items" t-value="conduce['checklist_columns'][3]['items'][5:]"/>
+                    <t t-call="fcr_vehicle_conduce.vehicle_conduce_checklist_items"/>
+                </div>
             </div>
-            <table class="fcr-checklist-grid">
-                <tr>
-                    <t t-foreach="conduce['checklist_columns']" t-as="column">
-                        <td>
-                            <div class="fcr-checklist-title" t-out="column['title']"/>
-                            <t t-foreach="column['items']" t-as="item">
-                                <div class="fcr-check-item">
-                                    <span class="fcr-check-symbol" t-out="'✓' if item['checked'] else ' '"/>
-                                    <span t-out="item['label']"/>
-                                </div>
-                            </t>
-                        </td>
-                    </t>
-                </tr>
-            </table>
         </div>
     </template>
 
