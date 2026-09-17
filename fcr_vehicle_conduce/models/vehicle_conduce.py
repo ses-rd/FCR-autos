@@ -93,6 +93,68 @@ class FcrVehicleConduce(models.Model):
         'check_screwdriver': (77.6, 90.2),
     }
 
+    CHECKLIST_COLUMNS = (
+        (
+            'Indicadores / controles',
+            (
+                'check_lights',
+                'check_gauges',
+                'check_horns',
+                'check_ac_vents',
+                'check_rearview_mirrors',
+                'check_glasses',
+                'check_window_switches',
+                'check_radio',
+            ),
+        ),
+        (
+            'Audio / accesorios',
+            (
+                'check_cassette_player',
+                'check_cd_changer',
+                'check_antenna',
+                'check_air_conditioning',
+                'check_cup_holder',
+                'check_lighter',
+                'check_center_console_lid',
+                'check_ashtray',
+                'check_headliner',
+            ),
+        ),
+        (
+            'Interior / motor',
+            (
+                'check_seat_upholstery',
+                'check_moldings',
+                'check_floor_mats',
+                'check_door_lining',
+                'check_oil_dipstick',
+                'check_atf_dipstick',
+                'check_engine_oil_cap',
+                'check_hydraulic_oil_cap',
+                'check_coolant_cap',
+                'check_radiator_cap',
+                'check_battery_no_7',
+                'check_battery_terminal_cover',
+                'check_engine_cover',
+            ),
+        ),
+        (
+            'Exterior / herramientas',
+            (
+                'check_bumper_converter_cover',
+                'check_lens',
+                'check_wheel_center_cap',
+                'check_spare_tire',
+                'check_wheel_wrench',
+                'check_jack',
+                'check_keys',
+                'check_pliers',
+                'check_screwdriver',
+            ),
+        ),
+    )
+
     name = fields.Char(compute='_compute_name', store=True)
     document_title = fields.Char(compute='_compute_document_title')
     active = fields.Boolean(default=True)
@@ -466,6 +528,23 @@ class FcrVehicleConduce(models.Model):
                 marks.append({'field': field_name, 'x': x, 'y': y})
         return marks
 
+    def _get_pdf_checklist_columns(self):
+        self.ensure_one()
+        columns = []
+        for title, field_names in self.CHECKLIST_COLUMNS:
+            columns.append({
+                'title': title,
+                'items': [
+                    {
+                        'field': field_name,
+                        'label': self._fields[field_name].string,
+                        'checked': bool(self._check_value(field_name)),
+                    }
+                    for field_name in field_names
+                ],
+            })
+        return columns
+
     def _get_pdf_values(self):
         self.ensure_one()
         if self.state == 'done':
@@ -497,6 +576,7 @@ class FcrVehicleConduce(models.Model):
                 'client_name': self.snapshot_client_name or self.snapshot_partner_name,
                 'client_signature': self.snapshot_client_signature,
                 'check_marks': self._get_active_check_marks(),
+                'checklist_columns': self._get_pdf_checklist_columns(),
                 'state': self.state,
             }
         values = self._get_expected_conduce_values()
@@ -522,5 +602,6 @@ class FcrVehicleConduce(models.Model):
             'client_name': signatures['client_name'],
             'client_signature': signatures['client_signature'],
             'check_marks': self._get_active_check_marks(),
+            'checklist_columns': self._get_pdf_checklist_columns(),
             'state': self.state,
         }
