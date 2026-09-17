@@ -179,11 +179,86 @@ class TestVehicleConduce(TransactionCase):
         with self.assertRaisesRegex(UserError, 'fecha efectiva'):
             empty_date._get_vehicle_conduce_date()
 
+    def _stock_reference_for_sale(self, sale):
+        return self.env['stock.reference'].create({
+            'name': sale.name,
+            'sale_ids': [(4, sale.id)],
+        })
+
+    def test_sale_resolution_accepts_move_sale_line(self):
+        picking, sale = self._picking()
+        self.assertEqual(picking._get_vehicle_conduce_sale(picking._get_vehicle_conduce_moves()), sale)
+        self.assertEqual(picking._get_vehicle_conduce_outgoing_values()['sale'], sale)
+
+    def test_outgoing_conduce_works_without_sale_or_incoming_conduce(self):
+        picking, _sale = self._picking(linked=False)
+        self.assertFalse(picking._get_vehicle_conduce_sale(picking._get_vehicle_conduce_moves()))
+        values = picking._get_vehicle_conduce_outgoing_values()
+        self.assertFalse(values['sale'])
+        self.assertEqual(values['partner'], self.recipient)
+        self.assertEqual(values['vehicle'], picking.move_ids.product_id.product_tmpl_id.vehicle_id)
+        self.assertFalse(self.env['fcr.vehicle.conduce'].search([
+            ('vehicle_id', '=', values['vehicle'].id),
+            ('conduce_type', '=', 'incoming'),
+        ]))
+        report_values = self.report_model._get_report_values([picking.id])
+        self.assertFalse(report_values['conduce_documents'][0]['sale'])
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        self.assertEqual(conduce.vehicle_id, values['vehicle'])
+        self.assertEqual(conduce.partner_id, self.recipient)
+
+    def test_sale_resolution_accepts_stock_reference_without_sale_line(self):
+        picking, sale = self._picking(linked=False)
+        reference = self._stock_reference_for_sale(sale)
+        picking.move_ids.reference_ids = [(4, reference.id)]
+        self.assertEqual(picking._get_vehicle_conduce_sale(picking._get_vehicle_conduce_moves()), sale)
+        values = picking._get_vehicle_conduce_outgoing_values()
+        self.assertEqual(values['sale'], sale)
+        self.assertEqual(values['partner'], self.recipient)
+        self.assertEqual(values['vehicle'], picking.move_ids.product_id.product_tmpl_id.vehicle_id)
+        before_sale = sale.read(['partner_id', 'partner_shipping_id', 'state', 'amount_total'])[0]
+        before_picking = picking.read(['state', 'scheduled_date', 'date_done', 'printed'])[0]
+        before_moves = picking.move_ids.read(['sale_line_id', 'state', 'quantity', 'product_uom_qty'])
+        report_values = self.report_model._get_report_values([picking.id])
+        self.assertEqual(report_values['conduce_documents'][0]['sale'], sale)
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        self.assertEqual(conduce.vehicle_id, values['vehicle'])
+        self.assertEqual(conduce.partner_id, self.recipient)
+        self.assertEqual(sale.read(['partner_id', 'partner_shipping_id', 'state', 'amount_total'])[0], before_sale)
+        self.assertEqual(picking.read(['state', 'scheduled_date', 'date_done', 'printed'])[0], before_picking)
+        self.assertEqual(picking.move_ids.read(['sale_line_id', 'state', 'quantity', 'product_uom_qty']), before_moves)
+
+    def test_sale_resolution_accepts_multiple_relations_to_same_sale(self):
+        picking, sale = self._picking()
+        reference = self._stock_reference_for_sale(sale)
+        picking.move_ids.reference_ids = [(4, reference.id)]
+        self.assertEqual(picking._get_vehicle_conduce_outgoing_values()['sale'], sale)
+
+    def test_conflicting_sale_relations_do_not_block_outgoing_conduce(self):
+        picking, sale = self._picking()
+        other_sale = self.env['sale.order'].create({
+            'partner_id': self.customer.id,
+            'partner_shipping_id': self.recipient.id,
+        })
+        reference = self._stock_reference_for_sale(other_sale)
+        picking.move_ids.reference_ids = [(4, reference.id)]
+        self.assertFalse(picking._get_vehicle_conduce_sale(picking._get_vehicle_conduce_moves()))
+        values = picking._get_vehicle_conduce_outgoing_values()
+        self.assertEqual(values['partner'], self.recipient)
+        self.assertEqual(values['vehicle'], picking.move_ids.product_id.product_tmpl_id.vehicle_id)
+        self.assertFalse(values['sale'])
+        self.assertNotEqual(sale, other_sale)
+
     def test_origin_does_not_establish_sale(self):
         picking, sale = self._picking(linked=False)
         picking.origin = sale.name
-        with self.assertRaisesRegex(UserError, 'venta'):
-            picking._get_vehicle_conduce_outgoing_values()
+        values = picking._get_vehicle_conduce_outgoing_values()
+        self.assertFalse(values['sale'])
+        self.assertEqual(values['partner'], self.recipient)
 
     def test_incoming_rejected(self):
         picking, _sale = self._picking(picking_type=self.warehouse.in_type_id)
@@ -222,21 +297,28 @@ class TestVehicleConduce(TransactionCase):
         self._move(picking, product, line, demand=0)
         self.assertEqual(picking._get_vehicle_conduce_outgoing_values()['vehicle'], expected)
 
-    def test_multiple_sales_rejected(self):
-        picking, _sale = self._picking()
-        other, _other_sale = self._picking()
-        self._move(picking, other.move_ids.product_id, other.move_ids.sale_line_id)
-        with self.assertRaisesRegex(UserError, 'relaciones de venta'):
-            picking._get_vehicle_conduce_outgoing_values()
-
-    def test_vehicle_requires_its_own_sale_line(self):
+    def test_multiple_sale_contexts_are_ignored_when_not_needed(self):
         picking, sale = self._picking()
-        picking.move_ids.sale_line_id = False
+        other_sale = self.env['sale.order'].create({
+            'partner_id': self.customer.id,
+            'partner_shipping_id': self.recipient.id,
+        })
+        accessory = self.env['product.product'].create({'name': 'Accessory with other sale', 'type': 'consu'})
+        other_line = self.env['sale.order.line'].create({'order_id': other_sale.id, 'product_id': accessory.id})
+        self._move(picking, accessory, other_line)
+        values = picking._get_vehicle_conduce_outgoing_values()
+        self.assertFalse(values['sale'])
+        self.assertEqual(values['partner'], self.recipient)
+        self.assertNotEqual(sale, other_sale)
+
+    def test_vehicle_move_without_sale_line_is_allowed_when_picking_has_sale_relation(self):
+        picking, sale = self._picking(linked=False)
+        reference = self._stock_reference_for_sale(sale)
+        picking.move_ids.reference_ids = [(4, reference.id)]
         accessory = self.env['product.product'].create({'name': 'Accessory', 'type': 'consu'})
         line = self.env['sale.order.line'].create({'order_id': sale.id, 'product_id': accessory.id})
         self._move(picking, accessory, line)
-        with self.assertRaisesRegex(UserError, 'movimientos del vehículo'):
-            picking._get_vehicle_conduce_outgoing_values()
+        self.assertEqual(picking._get_vehicle_conduce_outgoing_values()['sale'], sale)
 
     def test_stale_backlinks_do_not_override_moved_product(self):
         picking, _sale = self._picking()
@@ -278,12 +360,14 @@ class TestVehicleConduce(TransactionCase):
         with self.assertRaisesRegex(UserError, 'sin vínculo'):
             picking._get_vehicle_conduce_outgoing_values()
 
-    def test_sale_line_product_mismatch_rejected(self):
-        picking, _sale = self._picking()
+    def test_sale_line_product_mismatch_does_not_block_outgoing_conduce(self):
+        picking, sale = self._picking()
         other_product, _vehicle = self._vehicle_product()
-        picking.move_ids.sale_line_id.product_id = other_product
-        with self.assertRaises(UserError):
-            picking._get_vehicle_conduce_outgoing_values()
+        other_line = self.env['sale.order.line'].create({'order_id': sale.id, 'product_id': other_product.id})
+        picking.move_ids.sale_line_id = other_line
+        values = picking._get_vehicle_conduce_outgoing_values()
+        self.assertEqual(values['sale'], sale)
+        self.assertEqual(values['vehicle'], picking.move_ids.product_id.product_tmpl_id.vehicle_id)
 
     def test_foreign_vehicle_company_rejected(self):
         picking, _sale = self._picking()
@@ -436,7 +520,7 @@ class TestVehicleConduce(TransactionCase):
 
     def test_report_rejects_mixed_batch_and_missing_ids(self):
         valid, _sale = self._picking()
-        invalid, _sale = self._picking(linked=False)
+        invalid, _sale = self._picking(picking_type=self.warehouse.in_type_id)
         with self.assertRaises(UserError):
             self.report_model._get_report_values((valid | invalid).ids)
         with self.assertRaises(UserError):
@@ -451,6 +535,15 @@ class TestVehicleConduce(TransactionCase):
     def test_print_domain_and_letter_format(self):
         picking, _sale = self._picking()
         self.assertIn(self.report.id, self.report.get_valid_action_reports('stock.picking', picking.ids))
+        no_sale, _sale = self._picking(linked=False)
+        self.assertIn(self.report.id, self.report.get_valid_action_reports('stock.picking', no_sale.ids))
+        reference_only, sale = self._picking(linked=False)
+        reference = self._stock_reference_for_sale(sale)
+        reference_only.move_ids.reference_ids = [(4, reference.id)]
+        self.assertIn(
+            self.report.id,
+            self.report.get_valid_action_reports('stock.picking', reference_only.ids),
+        )
         picking.move_ids.state = 'cancel'
         self.assertNotIn(self.report.id, self.report.get_valid_action_reports('stock.picking', picking.ids))
         receipt, _purchase, _vendor = self._purchase_picking()
