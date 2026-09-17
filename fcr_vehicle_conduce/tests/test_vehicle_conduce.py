@@ -112,6 +112,55 @@ class TestVehicleConduce(TransactionCase):
         self.assertEqual(values['date'], '28/06/2026')
         self.assertEqual(values['vehicle_type'], 'Camioneta')
 
+    def test_vehicle_resolution_accepts_direct_and_inverse_product_links(self):
+        product, vehicle = self._vehicle_product()
+        picking, _sale = self._picking(product)
+        self.assertEqual(picking._get_vehicle_conduce_outgoing_values()['vehicle'], vehicle)
+
+        product.product_tmpl_id.vehicle_id = False
+        self.assertEqual(picking._get_vehicle_conduce_outgoing_values()['vehicle'], vehicle)
+
+        vehicle.product_id = False
+        self.assertEqual(picking._get_vehicle_conduce_outgoing_values()['vehicle'], vehicle)
+
+    def test_vehicle_resolution_accepts_inverse_product_variant_link(self):
+        product, vehicle = self._vehicle_product()
+        product.product_tmpl_id.vehicle_id = False
+        vehicle.product_tmpl_id = False
+        picking, _sale = self._picking(product)
+        values = picking._get_vehicle_conduce_outgoing_values()
+        self.assertEqual(values['vehicle'], vehicle)
+        report_values = self.report_model._get_report_values([picking.id])
+        self.assertEqual(report_values['conduce_documents'][0]['vehicle'], vehicle)
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        self.assertEqual(conduce.vehicle_id, vehicle)
+
+    def test_vehicle_resolution_accepts_inverse_template_link(self):
+        product, vehicle = self._vehicle_product()
+        product.product_tmpl_id.vehicle_id = False
+        vehicle.product_id = False
+        picking, _sale = self._picking(product)
+        values = picking._get_vehicle_conduce_outgoing_values()
+        self.assertEqual(values['vehicle'], vehicle)
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        self.assertEqual(conduce.vehicle_id, vehicle)
+
+    def test_conflicting_explicit_vehicle_links_are_rejected(self):
+        product, _vehicle = self._vehicle_product()
+        other_vehicle = self.env['fleet.vehicle'].create({
+            'model_id': self.vehicle_model.id,
+            'company_id': self.env.company.id,
+            'license_plate': 'CONFLICT-PLATE',
+        })
+        other_vehicle.product_id = product
+        picking, _sale = self._picking(product)
+        with self.assertRaisesRegex(UserError, 'varios veh'):
+            picking._get_vehicle_conduce_outgoing_values()
+
     def test_contact_fallbacks(self):
         picking, sale = self._picking()
         picking.partner_id = False
@@ -555,6 +604,36 @@ class TestVehicleConduce(TransactionCase):
         self.assertEqual(conduce.partner_id, vendor)
         self.assertEqual(conduce.state, 'draft')
 
+    def test_same_vehicle_can_have_independent_incoming_and_outgoing_conduces(self):
+        product, vehicle = self._vehicle_product()
+        incoming, _purchase, _vendor = self._purchase_picking([product])
+        outgoing, _sale = self._picking(product)
+        incoming_conduce = self.env['fcr.vehicle.conduce'].browse(
+            incoming.action_open_vehicle_conduce_incoming()['res_id']
+        )
+        outgoing_conduce = self.env['fcr.vehicle.conduce'].browse(
+            outgoing.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        self.assertNotEqual(incoming_conduce, outgoing_conduce)
+        self.assertEqual(incoming_conduce.vehicle_id, vehicle)
+        self.assertEqual(outgoing_conduce.vehicle_id, vehicle)
+        self.assertEqual(incoming_conduce.conduce_type, 'incoming')
+        self.assertEqual(outgoing_conduce.conduce_type, 'outgoing')
+
+    def test_same_vehicle_can_have_multiple_operation_conduces(self):
+        product, vehicle = self._vehicle_product()
+        first, _sale = self._picking(product)
+        second, _sale = self._picking(product)
+        first_conduce = self.env['fcr.vehicle.conduce'].browse(
+            first.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        second_conduce = self.env['fcr.vehicle.conduce'].browse(
+            second.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        self.assertNotEqual(first_conduce, second_conduce)
+        self.assertEqual(first_conduce.vehicle_id, vehicle)
+        self.assertEqual(second_conduce.vehicle_id, vehicle)
+
     def test_second_click_returns_same_digital_conduce(self):
         outgoing, _sale = self._picking()
         first = outgoing.action_open_vehicle_conduce_outgoing()['res_id']
@@ -583,8 +662,13 @@ class TestVehicleConduce(TransactionCase):
 
     def test_digital_checklist_persists_and_completion_does_not_change_stock(self):
         picking, _purchase, _vendor = self._purchase_picking()
+        product = picking.move_ids.product_id
+        vehicle = picking._get_vehicle_conduce_incoming_values()['vehicle']
         before_picking = picking.read(['state', 'scheduled_date', 'date_done', 'printed'])
         before_moves = picking.move_ids.read(['state', 'quantity', 'product_uom_qty'])
+        before_vehicle = vehicle.read(['product_id', 'product_tmpl_id', 'license_plate', 'vin_sn'])[0]
+        before_product = product.read(['product_tmpl_id', 'qty_available', 'virtual_available'])[0]
+        before_template = product.product_tmpl_id.read(['is_fleet', 'vehicle_id'])[0]
         quant_domain = [('product_id', 'in', picking.move_ids.product_id.ids)]
         before_quants = self.env['stock.quant'].search(quant_domain).read(['quantity', 'reserved_quantity'])
         conduce = self.env['fcr.vehicle.conduce'].browse(
@@ -607,6 +691,9 @@ class TestVehicleConduce(TransactionCase):
         self.assertTrue(conduce.completed_date)
         self.assertEqual(picking.read(['state', 'scheduled_date', 'date_done', 'printed']), before_picking)
         self.assertEqual(picking.move_ids.read(['state', 'quantity', 'product_uom_qty']), before_moves)
+        self.assertEqual(vehicle.read(['product_id', 'product_tmpl_id', 'license_plate', 'vin_sn'])[0], before_vehicle)
+        self.assertEqual(product.read(['product_tmpl_id', 'qty_available', 'virtual_available'])[0], before_product)
+        self.assertEqual(product.product_tmpl_id.read(['is_fleet', 'vehicle_id'])[0], before_template)
         self.assertEqual(self.env['stock.quant'].search(quant_domain).read(['quantity', 'reserved_quantity']), before_quants)
 
     def test_completed_digital_conduce_is_immutable(self):
