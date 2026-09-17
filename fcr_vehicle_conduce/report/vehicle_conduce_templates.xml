@@ -101,7 +101,7 @@
             <div class="fcr-inspection-wrap">
                 <img class="fcr-inspection" src="/fcr_vehicle_conduce/static/src/img/vehicle_inspection.png" alt="Checklist de inspección del vehículo"/>
                 <t t-foreach="conduce['check_marks']" t-as="mark">
-                    <span class="fcr-checkmark" t-att-style="'left: %.3f%%; top: %.3f%%;' % (mark['x'], mark['y'])">✓</span>
+                    <span class="fcr-checkmark" t-att-style="'left: {:.3f}%; top: {:.3f}%;'.format(mark['x'], mark['y'])">✓</span>
                 </t>
             </div>
         </div>
