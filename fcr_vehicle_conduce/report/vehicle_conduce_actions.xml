@@ -25,6 +25,6 @@
         <field name="binding_view_types">list,form</field>
         <field name="paperformat_id" ref="paperformat_vehicle_conduce"/>
         <field name="print_report_name">'Conduce de Entrada - %s' % object.name</field>
-        <field name="domain">[('picking_type_code', '=', 'incoming'), ('purchase_id', '!=', False), ('state', 'in', ['assigned', 'done'])]</field>
+        <field name="domain">[('picking_type_code', '=', 'incoming'), ('state', 'in', ['assigned', 'done']), '|', ('purchase_id', '!=', False), ('vehicle_entry_type', '=', 'consignment')]</field>
     </record>
 </odoo>

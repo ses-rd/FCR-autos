@@ -1,13 +1,15 @@
 # FCR — Conduces de vehículos (Odoo 19)
 
 Reportes PDF de Entrada y Salida por transferencia, con un único vehículo.
-No implementa inspecciones digitales, firmas digitales ni modificaciones de inventario.
+Los conduces y checklists no modifican inventario. El soporte de consignación se limita a identificar el motivo de entrada y no implementa contratos, comisiones, liquidaciones ni workflow adicional.
 
 ## Instalación y dependencias
 
 Instalar `fcr_vehicle_conduce` y sus dependencias `eg_fleet_product_link`, `purchase_stock`,
 `sale_stock` y `web`.
 `fleet`, `stock`, `product` y `account` llegan mediante esas dependencias.
+
+En recepciones de vehículos se agrega el campo **Tipo de entrada** en `stock.picking`: **Adquisición FCR** (`purchase`) para compras y **Consignación** (`consignment`) para ingresos manuales por consignación. Este campo no crea un workflow de consignaciones, contratos, comisiones ni liquidaciones.
 No depende de `l10n_do_ecf`, facturas ni módulos de nómina.
 Los módulos estándar de Odoo no están incluidos en este repositorio.
 
@@ -49,9 +51,9 @@ el conduce sigue en borrador.
 
 El dominio de Salida exige `picking_type_code = outgoing` y estado `assigned` (Listo)
 o `done` (Hecho). No exige venta. El dominio de Entrada exige `picking_type_code = incoming`,
-`purchase_id` y los mismos estados. El servidor vuelve a validar cada documento,
-incluyendo solicitudes directas al reporte. Un lote con una transferencia inválida se
-rechaza completo; no se omiten registros silenciosamente.
+los mismos estados y una de estas condiciones: una compra (`purchase_id`) o `vehicle_entry_type = consignment`.
+El servidor vuelve a validar cada documento, incluyendo solicitudes directas al reporte. Un lote con una
+transferencia inválida se rechaza completo; no se omiten registros silenciosamente.
 
 Se consideran los movimientos no cancelados con demanda positiva antes de finalizar,
 o cantidad efectivamente movida positiva después de finalizar. Las líneas canceladas
@@ -61,9 +63,11 @@ La venta de Salida es contexto opcional. Si existe una relación estructural ine
 por `picking.sale_id`, `move_ids.sale_line_id.order_id` o `reference_ids.sale_ids`, se
 incluye en los valores del documento, pero su ausencia no impide generar el conduce. El
 destinatario de Salida se toma primero de `picking.partner_id`; la venta solo sirve como
-respaldo si el picking no tiene contacto. La compra de Entrada todavía se obtiene de
+respaldo si el picking no tiene contacto. La Entrada por compra mantiene la validación de
 `move_ids.purchase_line_id.order_id`: debe ser única y coincidir con `picking.purchase_id`.
-Ese supuesto queda pendiente de revisión para vehículos en consignación.
+La Entrada por consignación no requiere compra; debe estar marcada explícitamente con
+`vehicle_entry_type = consignment` y utiliza `picking.partner_id` como propietario/persona
+que consigna el vehículo.
 
 El vehículo se obtiene de enlaces explícitos entre producto y Fleet:
 `move_ids.product_id.product_tmpl_id.vehicle_id`, `fleet.vehicle.product_id` o
@@ -94,10 +98,12 @@ compañía diferente se rechaza. Se mantienen los permisos normales, sin `sudo()
 | Dato | Fuente |
 | --- | --- |
 | Entregado a (Salida) | `picking.partner_id`, después `sale.partner_shipping_id`, después `sale.partner_id` |
-| Recibido a (Entrada) | `picking.partner_id`, después `purchase.partner_id` |
+| Recibido a (Entrada compra) | `picking.partner_id`, después `purchase.partner_id` |
+| Recibido a (Entrada consignación) | `picking.partner_id` |
 | Cédula, teléfono, correo | `vat`, `phone`, `email` del mismo contacto seleccionado |
 | Concepto Salida | Texto fijo `ENTREGA DE VEHICULO` |
-| Concepto Entrada | Texto fijo `Adquisición FCR` |
+| Concepto Entrada compra | Texto fijo `Adquisición FCR` |
+| Concepto Entrada consignación | Texto fijo `Consignación` |
 | Marca / modelo | `fleet.vehicle.brand_id.name` / `model_id.name` |
 | Año / placa / chasis | `model_year` / `license_plate` / `vin_sn` |
 | Odómetro | `odometer`, presentado sin decimales; `odometer_unit` como km o mi |

@@ -7,7 +7,7 @@ class VehicleConduceReportMixin(models.AbstractModel):
     _description = 'Utilidades compartidas para conduces de vehículos'
 
     @api.model
-    def _get_conduce_report_values(self, docids, report_title, values_method):
+    def _get_conduce_report_values(self, docids, report_title, conduce_type):
         # A direct report request can contain no ids or the same id more than once.
         docids = list(dict.fromkeys(docids or []))
         pickings = self.env['stock.picking'].browse(docids).exists()
@@ -17,7 +17,10 @@ class VehicleConduceReportMixin(models.AbstractModel):
                 report_title=report_title,
             ))
         # Prepare every document first: never silently omit invalid members of a batch.
-        documents = [getattr(picking, values_method)() for picking in pickings]
+        conduces = self.env['fcr.vehicle.conduce']
+        for picking in pickings:
+            conduces |= picking._get_or_create_vehicle_conduce(conduce_type)
+        documents = [conduce._get_pdf_values() for conduce in conduces]
         return {
             'doc_ids': pickings.ids,
             'doc_model': 'stock.picking',
@@ -34,7 +37,7 @@ class VehicleConduceOutgoingReport(models.AbstractModel):
     @api.model
     def _get_report_values(self, docids, data=None):
         return self._get_conduce_report_values(
-            docids, _('el Conduce de Salida'), '_get_vehicle_conduce_outgoing_values',
+            docids, _('el Conduce de Salida'), 'outgoing',
         )
 
 
@@ -46,5 +49,5 @@ class VehicleConduceIncomingReport(models.AbstractModel):
     @api.model
     def _get_report_values(self, docids, data=None):
         return self._get_conduce_report_values(
-            docids, _('el Conduce de Entrada'), '_get_vehicle_conduce_incoming_values',
+            docids, _('el Conduce de Entrada'), 'incoming',
         )
