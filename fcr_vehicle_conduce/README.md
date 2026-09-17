@@ -1,7 +1,7 @@
 # FCR — Conduces de vehículos (Odoo 19)
 
 Reportes PDF de Entrada y Salida por transferencia, con un único vehículo.
-Los conduces y checklists no modifican inventario. El soporte de consignación se limita a identificar el motivo de entrada y no implementa contratos, comisiones, liquidaciones ni workflow adicional.
+Los conduces, checklists y firmas digitales no modifican inventario. El soporte de consignación se limita a identificar el motivo de entrada y no implementa contratos, comisiones, liquidaciones ni workflow adicional.
 
 ## Instalación y dependencias
 
@@ -29,6 +29,21 @@ En Odoo 19, `ir.actions.report.domain` filtra ese menú contextual mediante
 La nueva vista hereda `stock.view_picking_form` y se carga después de la acción.
 El botón utiliza `type="action"` y llama directamente al reporte propio; no llama
 a `do_print_picking()` ni altera el indicador `printed` del traslado.
+
+## Firmas digitales
+
+Las firmas de Inspector y Cliente se capturan directamente en el formulario de `stock.picking`, en la pestaña **Firmas Conduce**, visible solo para transferencias candidatas a Conduce de Entrada o Salida. Se usan campos `Binary` con `attachment=True` y el widget estándar `signature` de Odoo, por lo que la captura funciona con mouse, pantalla táctil o stylus sin JavaScript personalizado.
+
+Los campos almacenados en la transferencia son:
+
+| Campo | Uso |
+| --- | --- |
+| `vehicle_conduce_inspector_name` | Nombre editable del inspector; por defecto el usuario actual. |
+| `vehicle_conduce_inspector_signature` | Firma dibujada del inspector. |
+| `vehicle_conduce_customer_name` | Nombre editable del cliente/proveedor/consignador que firma. |
+| `vehicle_conduce_customer_signature` | Firma dibujada del cliente/proveedor/consignador. |
+
+El nombre del cliente se prellena cuando es posible usando el mismo contacto resuelto por el conduce: Salida usa el destinatario de entrega, Entrada por compra usa el proveedor/contacto de la recepción y Entrada por consignación usa `picking.partner_id`. El PDF lee primero estos valores almacenados en el picking; si no hay firma, conserva la línea de firma y no falla.
 
 ## Checklist digital
 
@@ -145,7 +160,7 @@ procede de la segunda imagen suministrada (Conduce de Salida, 842 × 1079 píxel
 x=248, y=59, ancho=344, alto=48.
 
 Los textos legales y el pie se transcriben de los formatos suministrados, conservando
-su redacción. El checklist y las líneas de Inspector/Cliente se completan a mano.
+su redacción. El checklist se completa en Odoo o en papel según el flujo operativo; las firmas de Inspector/Cliente pueden capturarse digitalmente desde la transferencia y mostrarse en el PDF.
 Encabezado, datos de vehículo, checklist, firmas, pie y estilos son subplantillas
 compartidas entre Entrada y Salida.
 

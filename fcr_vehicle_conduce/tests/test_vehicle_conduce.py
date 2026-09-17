@@ -44,6 +44,14 @@ class TestVehicleConduce(TransactionCase):
             'client_signature': self._signature('client'),
         })
 
+    def _sign_picking(self, picking, inspector='Inspector Tablet', customer='Cliente Tablet'):
+        picking.write({
+            'vehicle_conduce_inspector_name': inspector,
+            'vehicle_conduce_inspector_signature': self._signature('picking inspector'),
+            'vehicle_conduce_customer_name': customer,
+            'vehicle_conduce_customer_signature': self._signature('picking customer'),
+        })
+
     def _vehicle_product(self):
         vehicle = self.env['fleet.vehicle'].create({
             'model_id': self.vehicle_model.id, 'company_id': self.env.company.id,
@@ -495,6 +503,95 @@ class TestVehicleConduce(TransactionCase):
         with self.assertRaisesRegex(UserError, 'compra'):
             picking._get_vehicle_conduce_incoming_values()
 
+    def test_picking_signature_fields_exist_and_store(self):
+        picking, _sale = self._picking()
+        for field_name in (
+            'vehicle_conduce_inspector_name',
+            'vehicle_conduce_inspector_signature',
+            'vehicle_conduce_customer_name',
+            'vehicle_conduce_customer_signature',
+        ):
+            self.assertIn(field_name, picking._fields)
+        self._sign_picking(picking)
+        picking.invalidate_recordset()
+        self.assertEqual(picking.vehicle_conduce_inspector_name, 'Inspector Tablet')
+        self.assertEqual(picking.vehicle_conduce_customer_name, 'Cliente Tablet')
+        self.assertTrue(picking.vehicle_conduce_inspector_signature)
+        self.assertTrue(picking.vehicle_conduce_customer_signature)
+
+    def test_outgoing_report_values_use_picking_signatures(self):
+        picking, _sale = self._picking()
+        self._sign_picking(picking, inspector='Inspector Salida', customer='Cliente Salida')
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        values = conduce._get_pdf_values()
+        self.assertEqual(values['inspector_name'], 'Inspector Salida')
+        self.assertEqual(values['client_name'], 'Cliente Salida')
+        self.assertEqual(values['inspector_signature'], picking.vehicle_conduce_inspector_signature)
+        self.assertEqual(values['client_signature'], picking.vehicle_conduce_customer_signature)
+
+    def test_purchase_incoming_report_values_use_picking_signatures(self):
+        picking, _purchase, _vendor = self._purchase_picking()
+        self._sign_picking(picking, inspector='Inspector Compra', customer='Proveedor Firmante')
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_incoming()['res_id']
+        )
+        values = conduce._get_pdf_values()
+        self.assertEqual(values['inspector_name'], 'Inspector Compra')
+        self.assertEqual(values['client_name'], 'Proveedor Firmante')
+        self.assertEqual(values['inspector_signature'], picking.vehicle_conduce_inspector_signature)
+        self.assertEqual(values['client_signature'], picking.vehicle_conduce_customer_signature)
+
+    def test_consignment_incoming_report_values_use_picking_signatures(self):
+        picking, consignor = self._manual_incoming_picking()
+        self._sign_picking(picking, inspector='Inspector Consigna', customer='Propietario Consigna')
+        values = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_incoming()['res_id']
+        )._get_pdf_values()
+        self.assertEqual(values['partner'], consignor)
+        self.assertEqual(values['concept'], 'Consignación')
+        self.assertEqual(values['inspector_name'], 'Inspector Consigna')
+        self.assertEqual(values['client_name'], 'Propietario Consigna')
+
+    def test_report_generates_without_picking_signatures(self):
+        picking, _sale = self._picking()
+        values = self.report_model._get_report_values([picking.id])['conduce_documents'][0]
+        self.assertFalse(values['inspector_signature'])
+        self.assertFalse(values['client_signature'])
+        self.assertEqual(values['client_name'], self.recipient.name)
+
+    def test_saving_picking_signatures_does_not_change_inventory(self):
+        picking, _sale = self._picking()
+        before_picking = picking.read(['state', 'scheduled_date', 'date_done', 'printed'])[0]
+        before_moves = picking.move_ids.read(['state', 'quantity', 'product_uom_qty'])
+        quant_domain = [('product_id', 'in', picking.move_ids.product_id.ids)]
+        before_quants = self.env['stock.quant'].search(quant_domain).read(['quantity', 'reserved_quantity'])
+        self._sign_picking(picking)
+        self.assertEqual(picking.read(['state', 'scheduled_date', 'date_done', 'printed'])[0], before_picking)
+        self.assertEqual(picking.move_ids.read(['state', 'quantity', 'product_uom_qty']), before_moves)
+        self.assertEqual(self.env['stock.quant'].search(quant_domain).read(['quantity', 'reserved_quantity']), before_quants)
+
+    def test_report_uses_stored_picking_signature_names_after_partner_change(self):
+        picking, _sale = self._picking()
+        self._sign_picking(picking, inspector='Inspector Guardado', customer='Cliente Guardado')
+        self.recipient.name = 'Cliente cambiado después de firmar'
+        values = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_outgoing()['res_id']
+        )._get_pdf_values()
+        self.assertEqual(values['inspector_name'], 'Inspector Guardado')
+        self.assertEqual(values['client_name'], 'Cliente Guardado')
+        self.assertNotEqual(values['client_name'], self.recipient.name)
+
+    def test_qweb_html_renders_picking_signatures(self):
+        picking, _sale = self._picking()
+        self._sign_picking(picking, inspector='Inspector HTML', customer='Cliente HTML')
+        html, _kind = self.env['ir.actions.report']._render_qweb_html(self.report.report_name, picking.ids)
+        html_text = html.decode()
+        self.assertIn('Inspector HTML', html_text)
+        self.assertIn('Cliente HTML', html_text)
+        self.assertIn('data:image', html_text)
+
     def test_incoming_contact_fallback_and_empty_fields(self):
         picking, purchase, vendor = self._purchase_picking()
         picking.partner_id = False
@@ -693,6 +790,11 @@ class TestVehicleConduce(TransactionCase):
         self.assertTrue(form.xpath('//field[@name="sale_id"]'))
         self.assertTrue(form.xpath('//field[@name="purchase_id"]'))
         self.assertTrue(form.xpath('//field[@name="vehicle_entry_type"]'))
+        self.assertTrue(form.xpath('//page[@string="Firmas Conduce"]'))
+        self.assertTrue(form.xpath('//field[@name="vehicle_conduce_inspector_name"]'))
+        self.assertTrue(form.xpath('//field[@name="vehicle_conduce_inspector_signature"][@widget="signature"]'))
+        self.assertTrue(form.xpath('//field[@name="vehicle_conduce_customer_name"]'))
+        self.assertTrue(form.xpath('//field[@name="vehicle_conduce_customer_signature"][@widget="signature"]'))
         # Both standard Print buttons must remain present and keep their targets.
         self.assertTrue(form.xpath('//header/button[@name="do_print_picking"][@type="object"]'))
         standard_id = self.env.ref('stock.action_report_delivery').id

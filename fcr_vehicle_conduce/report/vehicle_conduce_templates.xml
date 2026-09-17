@@ -28,9 +28,11 @@
                 font-weight: bold; line-height: 2.2mm; text-align: center; }
             .fcr-conduce .fcr-legal { font-size: 7.3pt; line-height: 1.16; text-align: justify; margin: 1mm 0 0; }
             .fcr-conduce .fcr-signatures { margin-top: 2.5mm; page-break-inside: avoid; }
-            .fcr-conduce .fcr-signature-box { width: 60mm; min-height: 12mm; border-bottom: 0.3mm solid #333; }
-            .fcr-conduce .fcr-signature-img { max-width: 58mm; max-height: 11mm; display: block; margin: 0 auto; }
-            .fcr-conduce .fcr-signature-label { padding-top: 0.8mm; width: 60mm; }
+            .fcr-conduce .fcr-signature-box { width: 60mm; height: 13mm; border-bottom: 0.3mm solid #333; }
+            .fcr-conduce .fcr-signature-img { max-width: 58mm; max-height: 12mm; width: auto; height: auto; display: block; margin: 0 auto; }
+            .fcr-conduce .fcr-signature-label { padding-top: 0.7mm; width: 60mm; text-align: center; line-height: 1.05; }
+            .fcr-conduce .fcr-signature-name { font-size: 7.8pt; font-weight: bold; word-break: break-word; }
+            .fcr-conduce .fcr-signature-role { font-size: 7.4pt; color: #333; }
             .fcr-conduce .fcr-signature-right { margin-left: auto; }
             .fcr-conduce .fcr-footer { margin-top: 4mm; text-align: center; font-family: Georgia, serif;
                 color: #666; font-size: 8.8pt; }
@@ -112,13 +114,19 @@
                     <div class="fcr-signature-box">
                         <img t-if="conduce['inspector_signature']" class="fcr-signature-img" t-att-src="image_data_uri(conduce['inspector_signature'])"/>
                     </div>
-                    <div class="fcr-signature-label">Inspector</div>
+                    <div class="fcr-signature-label">
+                        <div class="fcr-signature-role">Firma Inspector</div>
+                        <div class="fcr-signature-name" t-out="conduce['inspector_name'] or 'Inspector'"/>
+                    </div>
                 </td>
                 <td>
                     <div class="fcr-signature-box fcr-signature-right">
                         <img t-if="conduce['client_signature']" class="fcr-signature-img" t-att-src="image_data_uri(conduce['client_signature'])"/>
                     </div>
-                    <div class="fcr-signature-label fcr-signature-right">Cliente</div>
+                    <div class="fcr-signature-label fcr-signature-right">
+                        <div class="fcr-signature-role">Firma Cliente</div>
+                        <div class="fcr-signature-name" t-out="conduce['client_name'] or 'Cliente'"/>
+                    </div>
                 </td>
             </tr>
         </table>

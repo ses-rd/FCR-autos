@@ -16,11 +16,63 @@ class StockPicking(models.Model):
         help='Motivo operativo de entrada para vehículos. Las recepciones vinculadas a compra se tratan como Adquisición FCR.',
     )
 
+    vehicle_conduce_inspector_name = fields.Char(
+        string='Nombre del inspector',
+        default=lambda self: self.env.user.name,
+        copy=False,
+    )
+    vehicle_conduce_inspector_signature = fields.Binary(
+        string='Firma del inspector',
+        attachment=True,
+        copy=False,
+    )
+    vehicle_conduce_customer_name = fields.Char(
+        string='Nombre del cliente',
+        copy=False,
+    )
+    vehicle_conduce_customer_signature = fields.Binary(
+        string='Firma del cliente',
+        attachment=True,
+        copy=False,
+    )
+
     @api.onchange('purchase_id', 'picking_type_code')
     def _onchange_vehicle_entry_type_purchase(self):
         for picking in self:
             if picking.picking_type_code == 'incoming' and picking.purchase_id:
                 picking.vehicle_entry_type = 'purchase'
+
+    @api.onchange('partner_id', 'purchase_id', 'picking_type_code', 'vehicle_entry_type')
+    def _onchange_vehicle_conduce_signature_names(self):
+        for picking in self:
+            if not picking.vehicle_conduce_inspector_name:
+                picking.vehicle_conduce_inspector_name = self.env.user.name
+            if not picking.vehicle_conduce_customer_name:
+                partner = picking._get_vehicle_conduce_signature_partner()
+                if partner:
+                    picking.vehicle_conduce_customer_name = partner.name
+
+    def _get_vehicle_conduce_signature_partner(self):
+        self.ensure_one()
+        if self.picking_type_code == 'outgoing':
+            moves = self._get_vehicle_conduce_moves()
+            sale = self._get_vehicle_conduce_sale(moves)
+            return self.partner_id or sale.partner_shipping_id or sale.partner_id
+        if self.picking_type_code == 'incoming':
+            if self._get_vehicle_conduce_entry_type() == 'consignment':
+                return self.partner_id
+            return self.partner_id or self.purchase_id.partner_id
+        return self.env['res.partner']
+
+    def _ensure_vehicle_conduce_signature_names(self, values):
+        self.ensure_one()
+        write_values = {}
+        if not self.vehicle_conduce_inspector_name:
+            write_values['vehicle_conduce_inspector_name'] = self.env.user.name
+        if not self.vehicle_conduce_customer_name and values.get('partner'):
+            write_values['vehicle_conduce_customer_name'] = values['partner'].name
+        if write_values:
+            self.write(write_values)
 
     def _get_vehicle_conduce_moves(self):
         """Use this transfer only; ignore cancelled and zero-quantity moves."""
@@ -281,6 +333,7 @@ class StockPicking(models.Model):
             values = self._get_vehicle_conduce_incoming_values()
         else:
             raise UserError(_('Tipo de conduce no soportado: %(type)s.', type=conduce_type))
+        self._ensure_vehicle_conduce_signature_names(values)
 
         Conduce = self.env['fcr.vehicle.conduce'].with_context(active_test=False)
         conduce = Conduce.search([
