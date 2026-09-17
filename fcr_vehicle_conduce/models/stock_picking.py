@@ -100,6 +100,19 @@ class StockPicking(models.Model):
             ))
         return vehicle
 
+    def _get_vehicle_conduce_sale(self, moves):
+        """Return the optional sale context when stock/sale links are unambiguous."""
+        self.ensure_one()
+        sales = self.env['sale.order']
+        sales |= self.sale_id
+        sales |= moves.sale_line_id.order_id
+        sales |= self.reference_ids.sale_ids
+        sales |= moves.reference_ids.sale_ids
+        sales = sales.exists()
+        if len(sales) == 1 and (not sales.company_id or sales.company_id == self.company_id):
+            return sales
+        return self.env['sale.order']
+
     def _get_vehicle_conduce_type(self, vehicle):
         """Provisional body/type label: existing category, then car/bike label."""
         self.ensure_one()
@@ -133,32 +146,8 @@ class StockPicking(models.Model):
             ))
         date = self._get_vehicle_conduce_date()
         moves = self._get_vehicle_conduce_moves()
-        sales = moves.sale_line_id.order_id
-        if not self.sale_id or not sales:
-            raise UserError(_(
-                'La transferencia %(picking)s no está vinculada a una venta mediante sus movimientos.',
-                picking=self.display_name,
-            ))
-        if len(sales) != 1 or sales != self.sale_id:
-            raise UserError(_(
-                'La transferencia %(picking)s tiene relaciones de venta ambiguas o contradictorias.',
-                picking=self.display_name,
-            ))
-        sale = sales
-        if sale.company_id != self.company_id:
-            raise UserError(_('La venta y la transferencia deben pertenecer a la misma compañía.'))
+        sale = self._get_vehicle_conduce_sale(moves)
         vehicle = self._get_vehicle_conduce_vehicle(moves, _('El Conduce de Salida'))
-        vehicle_moves = self._get_vehicle_conduce_moves_for_vehicle(moves, vehicle)
-        if any(
-            move.sale_line_id.order_id != sale
-            or move.sale_line_id.product_id != move.product_id
-            for move in vehicle_moves
-        ):
-            raise UserError(_(
-                'Los movimientos del vehículo en %(picking)s deben estar vinculados '
-                'a líneas del mismo producto en la venta correspondiente.',
-                picking=self.display_name,
-            ))
         partner = self.partner_id or sale.partner_shipping_id or sale.partner_id
         if not partner:
             raise UserError(_('No se encontró el contacto destinatario de la entrega.'))

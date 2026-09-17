@@ -47,8 +47,8 @@ identificación, teléfono, correo, campos del vehículo, fecha formateada y tex
 El PDF firmado debería leer primero esos snapshots y solo caer a los related actuales si
 el conduce sigue en borrador.
 
-El dominio de Salida exige `picking_type_code = outgoing`, `sale_id` y estado `assigned`
-(Listo) o `done` (Hecho). El dominio de Entrada exige `picking_type_code = incoming`,
+El dominio de Salida exige `picking_type_code = outgoing` y estado `assigned` (Listo)
+o `done` (Hecho). No exige venta. El dominio de Entrada exige `picking_type_code = incoming`,
 `purchase_id` y los mismos estados. El servidor vuelve a validar cada documento,
 incluyendo solicitudes directas al reporte. Un lote con una transferencia inválida se
 rechaza completo; no se omiten registros silenciosamente.
@@ -57,18 +57,23 @@ Se consideran los movimientos no cancelados con demanda positiva antes de finali
 o cantidad efectivamente movida positiva después de finalizar. Las líneas canceladas
 y cantidades cero no identifican vehículos para este documento.
 
-La venta de Salida se obtiene de `move_ids.sale_line_id.order_id`: debe ser única y
-coincidir con `picking.sale_id`. La compra de Entrada se obtiene de
+La venta de Salida es contexto opcional. Si existe una relación estructural inequívoca
+por `picking.sale_id`, `move_ids.sale_line_id.order_id` o `reference_ids.sale_ids`, se
+incluye en los valores del documento, pero su ausencia no impide generar el conduce. El
+destinatario de Salida se toma primero de `picking.partner_id`; la venta solo sirve como
+respaldo si el picking no tiene contacto. La compra de Entrada todavía se obtiene de
 `move_ids.purchase_line_id.order_id`: debe ser única y coincidir con `picking.purchase_id`.
-El vehículo se obtiene exclusivamente de
-`move_ids.product_id.product_tmpl_id.vehicle_id`. No se usa `origin` ni se recorren
-los productos de toda la orden de venta o compra. Los movimientos del vehículo deben tener
-líneas del mismo producto en el documento origen correspondiente.
+Ese supuesto queda pendiente de revisión para vehículos en consignación.
+
+El vehículo se obtiene de enlaces explícitos entre producto y Fleet:
+`move_ids.product_id.product_tmpl_id.vehicle_id`, `fleet.vehicle.product_id` o
+`fleet.vehicle.product_tmpl_id`. No se usa `origin` ni se recorren los productos de toda
+la orden de venta o compra.
 
 Se rechazan: ausencia de vehículo, múltiples vehículos distintos, productos `is_fleet`
 sin vehículo y diferencias explícitas de compañía. Los productos accesorios sin indicador
-Fleet ni vehículo no cuentan como vehículos. No se buscan vehículos adicionales
-por nombre, placa, chasis o enlaces inversos. No se impone unicidad global al módulo Fleet.
+Fleet ni vehículo no cuentan como vehículos. No se buscan vehículos adicionales por nombre,
+placa o chasis. No se impone unicidad global al módulo Fleet.
 
 La revisión distingue estas condiciones:
 
