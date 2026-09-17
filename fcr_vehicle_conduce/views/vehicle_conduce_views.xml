@@ -40,6 +40,7 @@
                         <group>
                             <field name="vehicle_vin_sn"/>
                             <field name="vehicle_odometer"/>
+                            <field name="vehicle_odometer_unit"/>
                             <field name="vehicle_color"/>
                             <field name="vehicle_category_id"/>
                         </group>
