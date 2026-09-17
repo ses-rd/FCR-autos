@@ -20,12 +20,14 @@
                 word-wrap: break-word; }
             .fcr-conduce .fcr-code { word-break: break-all; }
             .fcr-conduce .fcr-section { margin-bottom: 2mm; }
-            .fcr-conduce .fcr-inspection-block { page-break-inside: avoid; }
-            .fcr-conduce .fcr-inspection-wrap { width: 156mm; max-width: 100%; margin: 0 auto; position: relative; }
-            .fcr-conduce .fcr-inspection { width: 100%; height: auto; display: block; }
-            .fcr-conduce .fcr-checkmark { position: absolute; width: 2.2mm; height: 2.2mm;
-                margin-left: -0.2mm; margin-top: -0.4mm; color: #111; font-size: 7.5pt;
-                font-weight: bold; line-height: 2.2mm; text-align: center; }
+            .fcr-conduce .fcr-inspection-block { page-break-inside: avoid; margin-top: 0.5mm; }
+            .fcr-conduce .fcr-inspection-graphic { text-align: center; margin: 0 auto 0.8mm; }
+            .fcr-conduce .fcr-inspection { width: 128mm; max-width: 100%; height: auto; }
+            .fcr-conduce .fcr-checklist-grid { font-size: 6.8pt; line-height: 1.05; }
+            .fcr-conduce .fcr-checklist-grid td { width: 25%; padding: 0 1.2mm 0 0; vertical-align: top; }
+            .fcr-conduce .fcr-checklist-title { font-weight: bold; font-size: 6.5pt; margin-bottom: 0.4mm; }
+            .fcr-conduce .fcr-check-item { white-space: nowrap; }
+            .fcr-conduce .fcr-check-symbol { display: inline-block; width: 3.2mm; font-weight: bold; text-align: center; }
             .fcr-conduce .fcr-legal { font-size: 7.3pt; line-height: 1.16; text-align: justify; margin: 1mm 0 0; }
             .fcr-conduce .fcr-signatures { margin-top: 2.5mm; page-break-inside: avoid; }
             .fcr-conduce .fcr-signature-box { width: 60mm; height: 13mm; border-bottom: 0.3mm solid #333; }
@@ -98,12 +100,24 @@
 
     <template id="vehicle_conduce_inspection">
         <div class="fcr-inspection-block">
-            <div class="fcr-inspection-wrap">
-                <img class="fcr-inspection" src="/fcr_vehicle_conduce/static/src/img/vehicle_inspection.png" alt="Checklist de inspección del vehículo"/>
-                <t t-foreach="conduce['check_marks']" t-as="mark">
-                    <span class="fcr-checkmark" t-att-style="'left: {:.3f}%; top: {:.3f}%;'.format(mark['x'], mark['y'])">✓</span>
-                </t>
+            <div class="fcr-inspection-graphic">
+                <img class="fcr-inspection" src="/fcr_vehicle_conduce/static/src/img/vehicle_inspection_drawings.png" alt="Referencia gráfica de inspección del vehículo"/>
             </div>
+            <table class="fcr-checklist-grid">
+                <tr>
+                    <t t-foreach="conduce['checklist_columns']" t-as="column">
+                        <td>
+                            <div class="fcr-checklist-title" t-out="column['title']"/>
+                            <t t-foreach="column['items']" t-as="item">
+                                <div class="fcr-check-item">
+                                    <span class="fcr-check-symbol" t-out="'✓' if item['checked'] else ' '"/>
+                                    <span t-out="item['label']"/>
+                                </div>
+                            </t>
+                        </td>
+                    </t>
+                </tr>
+            </table>
         </div>
     </template>
 
