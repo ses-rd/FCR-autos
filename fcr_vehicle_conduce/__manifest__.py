@@ -1,6 +1,6 @@
 {
     'name': 'FCR - Conduce de vehículos',
-    'version': '19.0.1.1.0',
+    'version': '19.0.1.2.0',
     'summary': 'Conduces de entrada y salida para vehículos vinculados a inventario',
     'author': 'SEGU',
     'category': 'Inventory/Inventory',

@@ -1,3 +1,4 @@
+from base64 import b64encode
 from datetime import datetime
 from uuid import uuid4
 
@@ -33,6 +34,15 @@ class TestVehicleConduce(TransactionCase):
         cls.report_model = cls.env['report.fcr_vehicle_conduce.report_vehicle_conduce_outgoing']
         cls.incoming_report = cls.env.ref('fcr_vehicle_conduce.action_report_vehicle_conduce_incoming')
         cls.incoming_report_model = cls.env['report.fcr_vehicle_conduce.report_vehicle_conduce_incoming']
+
+    def _signature(self, label='signature'):
+        return b64encode(label.encode())
+
+    def _sign_conduce(self, conduce):
+        conduce.write({
+            'inspector_signature': self._signature('inspector'),
+            'client_signature': self._signature('client'),
+        })
 
     def _vehicle_product(self):
         vehicle = self.env['fleet.vehicle'].create({
@@ -101,6 +111,28 @@ class TestVehicleConduce(TransactionCase):
         picking.scheduled_date = datetime(2026, 6, 28, 16, 0)
         picking.move_ids.state = 'assigned'
         return picking, purchase, vendor
+
+    def _manual_incoming_picking(self, products=None, partner=None, entry_type='consignment'):
+        products = products or [self._vehicle_product()[0]]
+        if partner is None:
+            partner = self.env['res.partner'].create({
+                'name': 'Conduce test consignor',
+                'phone': '809-555-0300',
+                'email': 'consignor@example.test',
+                'vat': '202020202',
+            })
+        picking = self.env['stock.picking'].create({
+            'picking_type_id': self.warehouse.in_type_id.id,
+            'partner_id': partner.id if partner else False,
+            'location_id': self.env.ref('stock.stock_location_suppliers').id,
+            'location_dest_id': self.warehouse.lot_stock_id.id,
+            'vehicle_entry_type': entry_type,
+        })
+        for product in products:
+            self._move(picking, product)
+        picking.scheduled_date = datetime(2026, 6, 28, 16, 0)
+        picking.move_ids.state = 'assigned'
+        return picking, partner
 
     def test_ready_delivery_contact_vehicle_and_scheduled_date(self):
         product, vehicle = self._vehicle_product()
@@ -413,6 +445,55 @@ class TestVehicleConduce(TransactionCase):
         self.assertEqual(values['date'], '28/06/2026')
         self.assertEqual(values['partner_label'], 'Recibido a')
         self.assertEqual(values['concept'], 'Adquisición FCR')
+        self.assertEqual(picking._get_vehicle_conduce_entry_type(), 'purchase')
+
+    def test_consignment_incoming_generates_without_purchase(self):
+        product, vehicle = self._vehicle_product()
+        picking, consignor = self._manual_incoming_picking([product])
+        self.assertFalse(picking.purchase_id)
+        values = picking.with_context(tz='America/Santo_Domingo')._get_vehicle_conduce_incoming_values()
+        self.assertFalse(values['purchase'])
+        self.assertEqual(values['partner'], consignor)
+        self.assertEqual(values['vehicle'], vehicle)
+        self.assertEqual(values['date'], '28/06/2026')
+        self.assertEqual(values['partner_label'], 'Recibido a')
+        self.assertEqual(values['concept'], 'Consignación')
+        html, _kind = self.env['ir.actions.report']._render_qweb_html(
+            self.incoming_report.report_name, picking.ids,
+        )
+        text = html_parser.fromstring(html).text_content()
+        self.assertIn(consignor.name, text)
+        self.assertIn('Consignación', text)
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_incoming()['res_id']
+        )
+        self.assertEqual(conduce.partner_id, consignor)
+        self.assertEqual(conduce.vehicle_id, vehicle)
+
+    def test_consignment_incoming_without_partner_rejected(self):
+        picking, _consignor = self._manual_incoming_picking()
+        picking.partner_id = False
+        with self.assertRaisesRegex(UserError, 'contacto'):
+            picking._get_vehicle_conduce_incoming_values()
+
+    def test_consignment_incoming_without_vehicle_rejected(self):
+        accessory = self.env['product.product'].create({'name': 'Consignment accessory only', 'type': 'consu'})
+        picking, _consignor = self._manual_incoming_picking([accessory])
+        with self.assertRaisesRegex(UserError, 'No hay un veh'):
+            picking._get_vehicle_conduce_incoming_values()
+
+    def test_consignment_incoming_multiple_vehicles_rejected(self):
+        first = self._vehicle_product()[0]
+        second = self._vehicle_product()[0]
+        picking, _consignor = self._manual_incoming_picking([first, second])
+        with self.assertRaisesRegex(UserError, 'varios veh'):
+            picking._get_vehicle_conduce_incoming_values()
+
+    def test_manual_receipt_not_marked_as_consignment_requires_purchase(self):
+        picking, _consignor = self._manual_incoming_picking(entry_type='purchase')
+        self.assertFalse(picking.purchase_id)
+        with self.assertRaisesRegex(UserError, 'compra'):
+            picking._get_vehicle_conduce_incoming_values()
 
     def test_incoming_contact_fallback_and_empty_fields(self):
         picking, purchase, vendor = self._purchase_picking()
@@ -551,6 +632,16 @@ class TestVehicleConduce(TransactionCase):
             self.incoming_report.id,
             self.incoming_report.get_valid_action_reports('stock.picking', receipt.ids),
         )
+        consignment, _consignor = self._manual_incoming_picking()
+        self.assertIn(
+            self.incoming_report.id,
+            self.incoming_report.get_valid_action_reports('stock.picking', consignment.ids),
+        )
+        manual_purchase, _consignor = self._manual_incoming_picking(entry_type='purchase')
+        self.assertNotIn(
+            self.incoming_report.id,
+            self.incoming_report.get_valid_action_reports('stock.picking', manual_purchase.ids),
+        )
         receipt.move_ids.state = 'cancel'
         self.assertNotIn(
             self.incoming_report.id,
@@ -601,6 +692,7 @@ class TestVehicleConduce(TransactionCase):
         self.assertEqual(incoming_checklist_buttons[0].get('type'), 'object')
         self.assertTrue(form.xpath('//field[@name="sale_id"]'))
         self.assertTrue(form.xpath('//field[@name="purchase_id"]'))
+        self.assertTrue(form.xpath('//field[@name="vehicle_entry_type"]'))
         # Both standard Print buttons must remain present and keep their targets.
         self.assertTrue(form.xpath('//header/button[@name="do_print_picking"][@type="object"]'))
         standard_id = self.env.ref('stock.action_report_delivery').id
@@ -613,33 +705,30 @@ class TestVehicleConduce(TransactionCase):
             for code in ('incoming', 'internal', 'outgoing'):
                 for sale_id in (False, 1):
                     for purchase_id in (False, 1):
-                        with self.subTest(state=state, code=code, sale_id=sale_id, purchase_id=purchase_id):
-                            outgoing_visible = not safe_eval(outgoing_condition, {
-                                'id': 1, 'state': state, 'picking_type_code': code,
-                                'sale_id': sale_id, 'purchase_id': purchase_id,
-                            })
-                            incoming_visible = not safe_eval(incoming_condition, {
-                                'id': 1, 'state': state, 'picking_type_code': code,
-                                'sale_id': sale_id, 'purchase_id': purchase_id,
-                            })
-                            outgoing_checklist_visible = not safe_eval(outgoing_checklist_condition, {
-                                'id': 1, 'state': state, 'picking_type_code': code,
-                                'sale_id': sale_id, 'purchase_id': purchase_id,
-                            })
-                            incoming_checklist_visible = not safe_eval(incoming_checklist_condition, {
-                                'id': 1, 'state': state, 'picking_type_code': code,
-                                'sale_id': sale_id, 'purchase_id': purchase_id,
-                            })
-                            self.assertEqual(
-                                outgoing_visible,
-                                code == 'outgoing' and state in ('assigned', 'done'),
-                            )
-                            self.assertEqual(
-                                incoming_visible,
-                                code == 'incoming' and state in ('assigned', 'done'),
-                            )
-                            self.assertEqual(outgoing_checklist_visible, outgoing_visible)
-                            self.assertEqual(incoming_checklist_visible, incoming_visible)
+                        for vehicle_entry_type in ('purchase', 'consignment'):
+                            with self.subTest(
+                                state=state, code=code, sale_id=sale_id,
+                                purchase_id=purchase_id, vehicle_entry_type=vehicle_entry_type,
+                            ):
+                                eval_context = {
+                                    'id': 1, 'state': state, 'picking_type_code': code,
+                                    'sale_id': sale_id, 'purchase_id': purchase_id,
+                                    'vehicle_entry_type': vehicle_entry_type,
+                                }
+                                outgoing_visible = not safe_eval(outgoing_condition, eval_context)
+                                incoming_visible = not safe_eval(incoming_condition, eval_context)
+                                outgoing_checklist_visible = not safe_eval(outgoing_checklist_condition, eval_context)
+                                incoming_checklist_visible = not safe_eval(incoming_checklist_condition, eval_context)
+                                expected_outgoing = code == 'outgoing' and state in ('assigned', 'done')
+                                expected_incoming = (
+                                    code == 'incoming'
+                                    and state in ('assigned', 'done')
+                                    and (purchase_id or vehicle_entry_type == 'consignment')
+                                )
+                                self.assertEqual(outgoing_visible, expected_outgoing)
+                                self.assertEqual(incoming_visible, expected_incoming)
+                                self.assertEqual(outgoing_checklist_visible, outgoing_visible)
+                                self.assertEqual(incoming_checklist_visible, incoming_visible)
 
     def test_incoming_conduce_action_invocation_in_assigned_and_done(self):
         picking, _purchase, _vendor = self._purchase_picking()
@@ -658,7 +747,7 @@ class TestVehicleConduce(TransactionCase):
 
     def test_incoming_printing_does_not_change_inventory(self):
         first, _purchase, _vendor = self._purchase_picking()
-        second, _purchase, _vendor = self._purchase_picking()
+        second, _consignor = self._manual_incoming_picking()
         pickings = first | second
         before_pickings = pickings.read(['state', 'scheduled_date', 'date_done', 'printed'])
         before_moves = pickings.move_ids.read(['state', 'quantity', 'product_uom_qty'])
@@ -773,6 +862,7 @@ class TestVehicleConduce(TransactionCase):
             'check_spare_tire': True,
             'check_jack': True,
         })
+        self._sign_conduce(conduce)
         conduce.action_mark_completed()
         conduce.invalidate_recordset()
         self.assertTrue(conduce.check_lights)
@@ -782,6 +872,12 @@ class TestVehicleConduce(TransactionCase):
         self.assertEqual(conduce.state, 'done')
         self.assertEqual(conduce.completed_by_id, self.env.user)
         self.assertTrue(conduce.completed_date)
+        self.assertTrue(conduce.inspector_signed_at)
+        self.assertTrue(conduce.client_signed_at)
+        self.assertEqual(conduce.snapshot_partner_name, conduce.partner_id.name)
+        self.assertEqual(conduce.snapshot_vehicle_vin_sn, vehicle.vin_sn)
+        self.assertTrue(conduce.snapshot_check_lights)
+        self.assertTrue(conduce.snapshot_check_radio)
         self.assertEqual(picking.read(['state', 'scheduled_date', 'date_done', 'printed']), before_picking)
         self.assertEqual(picking.move_ids.read(['state', 'quantity', 'product_uom_qty']), before_moves)
         self.assertEqual(vehicle.read(['product_id', 'product_tmpl_id', 'license_plate', 'vin_sn'])[0], before_vehicle)
@@ -789,12 +885,65 @@ class TestVehicleConduce(TransactionCase):
         self.assertEqual(product.product_tmpl_id.read(['is_fleet', 'vehicle_id'])[0], before_template)
         self.assertEqual(self.env['stock.quant'].search(quant_domain).read(['quantity', 'reserved_quantity']), before_quants)
 
+    def test_checklist_mark_mapping_covers_all_check_fields(self):
+        Conduce = self.env['fcr.vehicle.conduce']
+        self.assertEqual(len(Conduce._get_checklist_fields()), 39)
+        self.assertEqual(set(Conduce._get_checklist_fields()), set(Conduce._get_checklist_mark_coordinates()))
+        for field_name in Conduce._get_checklist_fields():
+            self.assertIn(field_name, Conduce._fields)
+        Conduce._validate_checklist_mark_mapping()
+
+    def test_pdf_check_marks_reflect_saved_booleans(self):
+        picking, _sale = self._picking()
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        conduce.write({'check_lights': True, 'check_radio': False, 'check_keys': True})
+        marks = conduce._get_pdf_values()['check_marks']
+        marked_fields = {mark['field'] for mark in marks}
+        self.assertIn('check_lights', marked_fields)
+        self.assertIn('check_keys', marked_fields)
+        self.assertNotIn('check_radio', marked_fields)
+
+    def test_completion_requires_both_signatures(self):
+        picking, _sale = self._picking()
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        with self.assertRaisesRegex(UserError, 'firma del inspector'):
+            conduce.action_mark_completed()
+        conduce.inspector_signature = self._signature('inspector')
+        with self.assertRaisesRegex(UserError, 'firma del cliente'):
+            conduce.action_mark_completed()
+
+    def test_completed_pdf_uses_snapshot_not_live_records(self):
+        picking, _sale = self._picking()
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        conduce.write({'check_lights': True})
+        self._sign_conduce(conduce)
+        draft_values = conduce._get_pdf_values()
+        self.assertEqual(draft_values['partner_name'], self.recipient.name)
+        conduce.action_mark_completed()
+        snapshot_partner = conduce.snapshot_partner_name
+        snapshot_vin = conduce.snapshot_vehicle_vin_sn
+        self.recipient.name = 'Changed recipient after done'
+        conduce.vehicle_id.vin_sn = 'CHANGEDVINAFTERDONE'
+        final_values = conduce._get_pdf_values()
+        self.assertEqual(final_values['partner_name'], snapshot_partner)
+        self.assertEqual(final_values['vehicle_vin_sn'], snapshot_vin)
+        self.assertNotEqual(final_values['partner_name'], self.recipient.name)
+        self.assertNotEqual(final_values['vehicle_vin_sn'], conduce.vehicle_id.vin_sn)
+        self.assertIn('check_lights', {mark['field'] for mark in final_values['check_marks']})
+
     def test_completed_digital_conduce_is_immutable(self):
         picking, _sale = self._picking()
         conduce = self.env['fcr.vehicle.conduce'].browse(
             picking.action_open_vehicle_conduce_outgoing()['res_id']
         )
         conduce.write({'check_lights': True})
+        self._sign_conduce(conduce)
         conduce.action_mark_completed()
         with self.assertRaisesRegex(UserError, 'completado'):
             conduce.write({'check_radio': True})
@@ -824,6 +973,7 @@ class TestVehicleConduce(TransactionCase):
         conduce = self.env['fcr.vehicle.conduce'].browse(
             picking.action_open_vehicle_conduce_outgoing()['res_id']
         )
+        self._sign_conduce(conduce)
         other_product, _other_vehicle = self._vehicle_product()
         picking.move_ids.product_id.product_tmpl_id.vehicle_id = other_product.product_tmpl_id.vehicle_id
         with self.assertRaisesRegex(UserError, 'ya no coincide'):
