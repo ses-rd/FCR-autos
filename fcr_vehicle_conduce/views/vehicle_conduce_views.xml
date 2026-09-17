@@ -25,7 +25,6 @@
                         <group>
                             <field name="date"/>
                             <field name="company_id" groups="base.group_multi_company"/>
-                            <field name="inspector_id"/>
                             <field name="completed_by_id" invisible="state != 'done'"/>
                             <field name="completed_date" invisible="state != 'done'"/>
                         </group>
@@ -46,6 +45,19 @@
                         </group>
                     </group>
                     <notebook>
+                        <page string="Firmas">
+                            <group>
+                                <group string="Inspector">
+                                    <field name="inspector_id" readonly="state == 'done'"/>
+                                    <field name="inspector_signature" widget="signature" readonly="state == 'done'"/>
+                                    <field name="inspector_signed_at" readonly="1"/>
+                                </group>
+                                <group string="Cliente">
+                                    <field name="client_signature" widget="signature" readonly="state == 'done'"/>
+                                    <field name="client_signed_at" readonly="1"/>
+                                </group>
+                            </group>
+                        </page>
                         <page string="Interior / Equipamiento">
                             <group>
                                 <group>
@@ -102,6 +114,30 @@
                                     <field name="check_keys" readonly="state == 'done'"/>
                                     <field name="check_pliers" readonly="state == 'done'"/>
                                     <field name="check_screwdriver" readonly="state == 'done'"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <page string="Snapshot" invisible="state != 'done'">
+                            <group>
+                                <group string="Datos generales congelados">
+                                    <field name="snapshot_date" readonly="1"/>
+                                    <field name="snapshot_partner_name" readonly="1"/>
+                                    <field name="snapshot_partner_vat" readonly="1"/>
+                                    <field name="snapshot_partner_phone" readonly="1"/>
+                                    <field name="snapshot_partner_email" readonly="1"/>
+                                    <field name="snapshot_concept" readonly="1"/>
+                                </group>
+                                <group string="Vehículo congelado">
+                                    <field name="snapshot_vehicle_brand" readonly="1"/>
+                                    <field name="snapshot_vehicle_model" readonly="1"/>
+                                    <field name="snapshot_vehicle_model_year" readonly="1"/>
+                                    <field name="snapshot_vehicle_license_plate" readonly="1"/>
+                                    <field name="snapshot_vehicle_vin_sn" readonly="1"/>
+                                    <field name="snapshot_vehicle_odometer" readonly="1"/>
+                                    <field name="snapshot_vehicle_odometer_unit" readonly="1"/>
+                                    <field name="snapshot_vehicle_color" readonly="1"/>
+                                    <field name="snapshot_vehicle_type" readonly="1"/>
                                 </group>
                             </group>
                         </page>

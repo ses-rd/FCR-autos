@@ -1,12 +1,26 @@
 from psycopg2 import IntegrityError
 
-from odoo import _, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools.misc import format_date
 
 
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
+
+    vehicle_entry_type = fields.Selection(
+        selection=[('purchase', 'Adquisición FCR'), ('consignment', 'Consignación')],
+        string='Tipo de entrada',
+        default='purchase',
+        copy=False,
+        help='Motivo operativo de entrada para vehículos. Las recepciones vinculadas a compra se tratan como Adquisición FCR.',
+    )
+
+    @api.onchange('purchase_id', 'picking_type_code')
+    def _onchange_vehicle_entry_type_purchase(self):
+        for picking in self:
+            if picking.picking_type_code == 'incoming' and picking.purchase_id:
+                picking.vehicle_entry_type = 'purchase'
 
     def _get_vehicle_conduce_moves(self):
         """Use this transfer only; ignore cancelled and zero-quantity moves."""
@@ -169,16 +183,24 @@ class StockPicking(models.Model):
             'partner': partner,
         }
 
-    def _get_vehicle_conduce_incoming_values(self):
-        """Validate receipt rules through purchase_stock relations, never origin text."""
+    def _get_vehicle_conduce_incoming_legal_text(self):
+        return _(
+            'Acogiéndome a todas las estipulaciones contenidas en esta hoja de recepción, autorizo '
+            'a FCR AUTOS S.R.L. a servir como agente de venta del bien dado en garantía prendaria y '
+            'autorizo al potencial futuro comprador, a pagar directamente a FCR AUTOS S.R.L., la suma '
+            'acordada entre ambas partes, más comisiones por servicios de venta, intereses sobre el '
+            'avance de efectivo, gastos legales, gastos de almacenaje y cualquier otra suma resultante '
+            'del presente acuerdo.'
+        )
+
+    def _get_vehicle_conduce_entry_type(self):
         self.ensure_one()
-        if self.picking_type_code != 'incoming':
-            raise UserError(_(
-                'El Conduce de Entrada solo corresponde a operaciones de entrada: %(picking)s.',
-                picking=self.display_name,
-            ))
-        date = self._get_vehicle_conduce_date()
-        moves = self._get_vehicle_conduce_moves()
+        if self.purchase_id:
+            return 'purchase'
+        return self.vehicle_entry_type or 'purchase'
+
+    def _get_vehicle_conduce_incoming_purchase_values(self, date, moves):
+        self.ensure_one()
         purchases = moves.purchase_line_id.order_id
         if not self.purchase_id or not purchases:
             raise UserError(_(
@@ -213,17 +235,43 @@ class StockPicking(models.Model):
             'title': 'CONDUCE DE ENTRADA',
             'partner_label': 'Recibido a',
             'concept': 'Adquisición FCR',
-            'legal_text': _(
-                'Acogiéndome a todas las estipulaciones contenidas en esta hoja de recepción, autorizo '
-                'a FCR AUTOS S.R.L. a servir como agente de venta del bien dado en garantía prendaria y '
-                'autorizo al potencial futuro comprador, a pagar directamente a FCR AUTOS S.R.L., la suma '
-                'acordada entre ambas partes, más comisiones por servicios de venta, intereses sobre el '
-                'avance de efectivo, gastos legales, gastos de almacenaje y cualquier otra suma resultante '
-                'del presente acuerdo.'
-            ),
+            'legal_text': self._get_vehicle_conduce_incoming_legal_text(),
             'purchase': purchase,
             'partner': partner,
         }
+
+    def _get_vehicle_conduce_incoming_consignment_values(self, date, moves):
+        self.ensure_one()
+        vehicle = self._get_vehicle_conduce_vehicle(moves, _('El Conduce de Entrada'))
+        partner = self.partner_id
+        if not partner:
+            raise UserError(_(
+                'Debe indicar el contacto que entrega o consigna el vehículo en %(picking)s.',
+                picking=self.display_name,
+            ))
+        return {
+            **self._get_vehicle_conduce_common_values(vehicle, date),
+            'title': 'CONDUCE DE ENTRADA',
+            'partner_label': 'Recibido a',
+            'concept': 'Consignación',
+            'legal_text': self._get_vehicle_conduce_incoming_legal_text(),
+            'purchase': self.env['purchase.order'],
+            'partner': partner,
+        }
+
+    def _get_vehicle_conduce_incoming_values(self):
+        """Validate receipt rules through purchase_stock relations or explicit consignment."""
+        self.ensure_one()
+        if self.picking_type_code != 'incoming':
+            raise UserError(_(
+                'El Conduce de Entrada solo corresponde a operaciones de entrada: %(picking)s.',
+                picking=self.display_name,
+            ))
+        date = self._get_vehicle_conduce_date()
+        moves = self._get_vehicle_conduce_moves()
+        if self._get_vehicle_conduce_entry_type() == 'consignment':
+            return self._get_vehicle_conduce_incoming_consignment_values(date, moves)
+        return self._get_vehicle_conduce_incoming_purchase_values(date, moves)
 
     def _get_or_create_vehicle_conduce(self, conduce_type):
         self.ensure_one()
