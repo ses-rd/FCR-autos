@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="l10n_do_fcr_auto_invoice_report_invoice_document" inherit_id="account.report_invoice_document">
+        <xpath expr="//div[hasclass('page')]/t[@t-set='layout_document_title']" position="attributes">
+            <attribute name="t-if">False</attribute>
+        </xpath>
+        <t t-set="display_taxes" position="replace">
+            <t t-set="display_taxes" t-value="False"/>
+        </t>
+        <xpath expr="//div[hasclass('page')]" position="inside">
+            <div class="row text-center mt-5" style="page-break-inside: avoid;">
+                <div class="col-6 mt-2">
+                    <div style="border-top: 1px solid black; width: 70%; margin: 0 auto;"/>
+                    <strong class="mt-2 d-block">Preparado por</strong>
+                </div>
+                <div class="col-6 mt-2">
+                    <div style="border-top: 1px solid black; width: 70%; margin: 0 auto;"/>
+                    <strong class="mt-2 d-block">Recibido por</strong>
+                </div>
+            </div>
+        </xpath>
+        <xpath expr="///div[hasclass('page')]//div[@id='payment_term']//p[@name='payment_communication']"
+               position="attributes">
+            <attribute name="t-if">False</attribute>
+        </xpath>
+        <xpath expr="//div[@name='comment']" position="attributes">
+            <attribute name="t-if">False</attribute>
+        </xpath>
+        <xpath expr="//div[hasclass('page')]//div[@id='informations']/div[@name='invoice_date']" position="attributes">
+            <attribute name="t-if">False</attribute>
+        </xpath>
+        <xpath expr="//div[hasclass('page')]//div[@id='informations']/div[@name='due_date']" position="attributes">
+            <attribute name="t-if">False</attribute>
+        </xpath>
+    </template>
+    <template id="l10n_do_fcr_auto_invoice_report_invoice_document1" inherit_id="l10n_do_accounting.l10n_do_report_invoice_document">
+        <xpath expr="//div[@id='do_informations']" position="attributes">
+            <attribute name="t-if">True</attribute>
+        </xpath>
+        <xpath expr="//div[@id='do_informations']/div/h3/span[1]" position="after">
+            <t t-if="not is_l10n_do_invoice">
+                <span t-if="o.move_type == 'out_invoice' and o.state == 'posted'">
+                    <t name="invoice_title">Factura</t>
+                </span>
+                <span t-elif="o.move_type == 'out_refund' and o.state == 'posted'">
+                    <t name="credit_note_title">Nota de Credito</t>
+                </span>
+            </t>
+        </xpath>
+        <xpath expr="//div[@id='l10n_do_invoice_information']" position="attributes">
+            <attribute name="t-if">True</attribute>
+        </xpath>
+    </template>
+</odoo>
