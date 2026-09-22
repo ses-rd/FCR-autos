@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_picking_form_vehicle_conduce" model="ir.ui.view">
+        <field name="name">stock.picking.form.vehicle.conduce</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <!-- Stock's header Print buttons execute specific standard reports.
+                 Add an independent action; do not replace either Print button. -->
+            <xpath expr="//header/field[@name='state'][1]" position="before">
+                <!-- Ensure the visibility field is loaded regardless of other views. -->
+                <field name="sale_id" invisible="True"/>
+                <field name="purchase_id" invisible="True"/>
+                <field name="vehicle_entry_type" invisible="True"/>
+                <button name="action_open_vehicle_conduce_outgoing"
+                        type="object" string="Checklist Conduce de Salida"
+                        invisible="not id or picking_type_code != 'outgoing' or state not in ('assigned', 'done')"/>
+                <button name="action_open_vehicle_conduce_incoming"
+                        type="object" string="Checklist Conduce de Entrada"
+                        invisible="not id or picking_type_code != 'incoming' or state not in ('assigned', 'done') or (not purchase_id and vehicle_entry_type != 'consignment')"/>
+                <button name="%(fcr_vehicle_conduce.action_report_vehicle_conduce_outgoing)d"
+                        type="action" string="Conduce de Salida"
+                        invisible="not id or picking_type_code != 'outgoing' or state not in ('assigned', 'done')"/>
+                <button name="%(fcr_vehicle_conduce.action_report_vehicle_conduce_incoming)d"
+                        type="action" string="Conduce de Entrada"
+                        invisible="not id or picking_type_code != 'incoming' or state not in ('assigned', 'done') or (not purchase_id and vehicle_entry_type != 'consignment')"/>
+            </xpath>
+            <xpath expr="//field[@name='picking_type_id']" position="after">
+                <field name="vehicle_entry_type" string="Tipo de entrada"
+                       invisible="picking_type_code != 'incoming'"
+                       readonly="purchase_id"/>
+            </xpath>
+            <xpath expr="//sheet/notebook" position="inside">
+                <page string="Firmas Conduce"
+                      invisible="not id or state not in ('assigned', 'done') or (picking_type_code != 'outgoing' and (picking_type_code != 'incoming' or (not purchase_id and vehicle_entry_type != 'consignment')))">
+                    <group>
+                        <group string="Inspector">
+                            <field name="vehicle_conduce_inspector_name" placeholder="Nombre del inspector"/>
+                            <field name="vehicle_conduce_inspector_signature" widget="signature"/>
+                        </group>
+                        <group string="Cliente">
+                            <field name="vehicle_conduce_customer_name" placeholder="Nombre del cliente"/>
+                            <field name="vehicle_conduce_customer_signature" widget="signature"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

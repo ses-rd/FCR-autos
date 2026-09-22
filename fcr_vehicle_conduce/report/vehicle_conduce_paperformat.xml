@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="paperformat_vehicle_conduce" model="report.paperformat">
+        <field name="name">FCR Conduces - Carta (8.5 x 11)</field>
+        <field name="default" eval="False"/>
+        <!-- Letter preserves exactly 215.9 x 279.4 mm. Custom dimensions are
+             Integer fields in Odoo 19 and would truncate the fractional mm. -->
+        <field name="format">Letter</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">10</field>
+        <field name="margin_bottom">10</field>
+        <field name="margin_left">12</field>
+        <field name="margin_right">12</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">90</field>
+        <field name="disable_shrinking" eval="True"/>
+    </record>
+</odoo>

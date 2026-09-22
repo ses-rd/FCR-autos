@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_vehicle_conduce_outgoing" model="ir.actions.report">
+        <field name="name">Conduce de Salida</field>
+        <field name="model">stock.picking</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">fcr_vehicle_conduce.report_vehicle_conduce_outgoing</field>
+        <field name="report_file">fcr_vehicle_conduce.report_vehicle_conduce_outgoing</field>
+        <field name="binding_model_id" ref="stock.model_stock_picking"/>
+        <field name="binding_type">report</field>
+        <field name="binding_view_types">list,form</field>
+        <field name="paperformat_id" ref="paperformat_vehicle_conduce"/>
+        <field name="print_report_name">'Conduce de Salida - %s' % object.name</field>
+        <field name="domain">[('picking_type_code', '=', 'outgoing'), ('state', 'in', ['assigned', 'done'])]</field>
+    </record>
+
+    <record id="action_report_vehicle_conduce_incoming" model="ir.actions.report">
+        <field name="name">Conduce de Entrada</field>
+        <field name="model">stock.picking</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">fcr_vehicle_conduce.report_vehicle_conduce_incoming</field>
+        <field name="report_file">fcr_vehicle_conduce.report_vehicle_conduce_incoming</field>
+        <field name="binding_model_id" ref="stock.model_stock_picking"/>
+        <field name="binding_type">report</field>
+        <field name="binding_view_types">list,form</field>
+        <field name="paperformat_id" ref="paperformat_vehicle_conduce"/>
+        <field name="print_report_name">'Conduce de Entrada - %s' % object.name</field>
+        <field name="domain">[('picking_type_code', '=', 'incoming'), ('state', 'in', ['assigned', 'done']), '|', ('purchase_id', '!=', False), ('vehicle_entry_type', '=', 'consignment')]</field>
+    </record>
+</odoo>
