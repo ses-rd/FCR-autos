@@ -46,6 +46,9 @@ class FcrVehicleConduce(models.Model):
         'check_wheel_wrench',
         'check_jack',
         'check_keys',
+        'check_key_1',
+        'check_key_2',
+        'check_key_3',
         'check_pliers',
         'check_screwdriver',
     )
@@ -89,6 +92,9 @@ class FcrVehicleConduce(models.Model):
         'check_wheel_wrench': (61.0, 92.8),
         'check_jack': (77.6, 82.1),
         'check_keys': (77.6, 84.8),
+        'check_key_1': (77.6, 85.8),
+        'check_key_2': (77.6, 86.8),
+        'check_key_3': (77.6, 87.8),
         'check_pliers': (77.6, 87.5),
         'check_screwdriver': (77.6, 90.2),
     }
@@ -149,6 +155,9 @@ class FcrVehicleConduce(models.Model):
                 'check_wheel_wrench',
                 'check_jack',
                 'check_keys',
+                'check_key_1',
+                'check_key_2',
+                'check_key_3',
                 'check_pliers',
                 'check_screwdriver',
             ),
@@ -237,6 +246,9 @@ class FcrVehicleConduce(models.Model):
     check_wheel_wrench = fields.Boolean(string='Llave Ruedas')
     check_jack = fields.Boolean(string='Gato')
     check_keys = fields.Boolean(string='Llaves')
+    check_key_1 = fields.Boolean(string='Llave 1')
+    check_key_2 = fields.Boolean(string='Llave 2')
+    check_key_3 = fields.Boolean(string='Llave 3')
     check_pliers = fields.Boolean(string='Alicate')
     check_screwdriver = fields.Boolean(string='Destornillador')
 
@@ -302,6 +314,9 @@ class FcrVehicleConduce(models.Model):
     snapshot_check_wheel_wrench = fields.Boolean(string='Snapshot check_wheel_wrench', readonly=True, copy=False)
     snapshot_check_jack = fields.Boolean(string='Snapshot check_jack', readonly=True, copy=False)
     snapshot_check_keys = fields.Boolean(string='Snapshot check_keys', readonly=True, copy=False)
+    snapshot_check_key_1 = fields.Boolean(string='Snapshot check_key_1', readonly=True, copy=False)
+    snapshot_check_key_2 = fields.Boolean(string='Snapshot check_key_2', readonly=True, copy=False)
+    snapshot_check_key_3 = fields.Boolean(string='Snapshot check_key_3', readonly=True, copy=False)
     snapshot_check_pliers = fields.Boolean(string='Snapshot check_pliers', readonly=True, copy=False)
     snapshot_check_screwdriver = fields.Boolean(string='Snapshot check_screwdriver', readonly=True, copy=False)
 
