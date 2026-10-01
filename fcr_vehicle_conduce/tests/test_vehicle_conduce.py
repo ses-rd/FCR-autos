@@ -989,7 +989,7 @@ class TestVehicleConduce(TransactionCase):
 
     def test_checklist_columns_cover_all_check_fields_in_order(self):
         Conduce = self.env['fcr.vehicle.conduce']
-        self.assertEqual(len(Conduce._get_checklist_fields()), 39)
+        self.assertEqual(len(Conduce._get_checklist_fields()), 42)
         configured_fields = [
             field_name
             for _title, field_names in Conduce.CHECKLIST_COLUMNS
@@ -1007,7 +1007,7 @@ class TestVehicleConduce(TransactionCase):
         conduce = self.env['fcr.vehicle.conduce'].browse(
             picking.action_open_vehicle_conduce_outgoing()['res_id']
         )
-        conduce.write({'check_lights': True, 'check_radio': False, 'check_keys': True})
+        conduce.write({'check_lights': True, 'check_radio': False, 'check_keys': True, 'check_key_1': True})
         items = {
             item['field']: item
             for column in conduce._get_pdf_values()['checklist_columns']
@@ -1015,8 +1015,12 @@ class TestVehicleConduce(TransactionCase):
         }
         self.assertTrue(items['check_lights']['checked'])
         self.assertTrue(items['check_keys']['checked'])
+        self.assertTrue(items['check_key_1']['checked'])
+        self.assertFalse(items['check_key_2']['checked'])
+        self.assertFalse(items['check_key_3']['checked'])
         self.assertFalse(items['check_radio']['checked'])
         self.assertEqual(items['check_lights']['label'], 'Luces')
+        self.assertEqual(items['check_key_1']['label'], 'Llave 1')
 
     def test_completion_requires_both_signatures(self):
         picking, _sale = self._picking()
@@ -1151,7 +1155,7 @@ class TestVehicleConduce(TransactionCase):
         html, _kind = self.env['ir.actions.report']._render_qweb_html(self.report.report_name, picking.ids)
         html = html.decode()
         for text in ('CONDUCE DE SALIDA', 'TEST-CHASSIS', 'Conduce test recipient',
-                     'vehicle_inspection_drawings.png', 'Luces', 'Relojes', 'Inspector',
+                     'vehicle_inspection_drawings.png', 'Luces', 'Relojes', 'Llave 1', 'Llave 2', 'Llave 3', 'Inspector',
                      'Cliente', 'No firme en caso de diferencia.'):
             self.assertIn(text, html)
         self.assertNotIn('fcr-checkmark', html)
