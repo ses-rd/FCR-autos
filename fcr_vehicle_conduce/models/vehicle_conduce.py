@@ -45,9 +45,7 @@ class FcrVehicleConduce(models.Model):
         'check_spare_tire',
         'check_wheel_wrench',
         'check_jack',
-        'check_key_1',
-        'check_key_2',
-        'check_key_3',
+        'check_keys',
         'check_pliers',
         'check_screwdriver',
     )
@@ -90,9 +88,7 @@ class FcrVehicleConduce(models.Model):
         'check_spare_tire': (61.0, 90.1),
         'check_wheel_wrench': (61.0, 92.8),
         'check_jack': (77.6, 82.1),
-        'check_key_1': (77.6, 85.8),
-        'check_key_2': (77.6, 86.8),
-        'check_key_3': (77.6, 87.8),
+        'check_keys': (77.6, 85.8),
         'check_pliers': (77.6, 87.5),
         'check_screwdriver': (77.6, 90.2),
     }
@@ -152,9 +148,7 @@ class FcrVehicleConduce(models.Model):
                 'check_spare_tire',
                 'check_wheel_wrench',
                 'check_jack',
-                'check_key_1',
-                'check_key_2',
-                'check_key_3',
+                'check_keys',
                 'check_pliers',
                 'check_screwdriver',
             ),
@@ -243,9 +237,7 @@ class FcrVehicleConduce(models.Model):
     check_wheel_wrench = fields.Boolean(string='Llave Ruedas')
     check_jack = fields.Boolean(string='Gato')
     check_keys = fields.Boolean(string='Llaves')
-    check_key_1 = fields.Boolean(string='Llave 1')
-    check_key_2 = fields.Boolean(string='Llave 2')
-    check_key_3 = fields.Boolean(string='Llave 3')
+    key_quantity = fields.Integer(string='Cantidad de llaves')
     check_pliers = fields.Boolean(string='Alicate')
     check_screwdriver = fields.Boolean(string='Destornillador')
 
@@ -311,9 +303,7 @@ class FcrVehicleConduce(models.Model):
     snapshot_check_wheel_wrench = fields.Boolean(string='Snapshot check_wheel_wrench', readonly=True, copy=False)
     snapshot_check_jack = fields.Boolean(string='Snapshot check_jack', readonly=True, copy=False)
     snapshot_check_keys = fields.Boolean(string='Snapshot check_keys', readonly=True, copy=False)
-    snapshot_check_key_1 = fields.Boolean(string='Snapshot check_key_1', readonly=True, copy=False)
-    snapshot_check_key_2 = fields.Boolean(string='Snapshot check_key_2', readonly=True, copy=False)
-    snapshot_check_key_3 = fields.Boolean(string='Snapshot check_key_3', readonly=True, copy=False)
+    snapshot_key_quantity = fields.Integer(string='Snapshot cantidad de llaves', readonly=True, copy=False)
     snapshot_check_pliers = fields.Boolean(string='Snapshot check_pliers', readonly=True, copy=False)
     snapshot_check_screwdriver = fields.Boolean(string='Snapshot check_screwdriver', readonly=True, copy=False)
 
@@ -378,6 +368,20 @@ class FcrVehicleConduce(models.Model):
             if not signatures['inspector_signature'] or not signatures['client_signature']:
                 raise ValidationError(_('El conduce completado debe tener firma de inspector y cliente.'))
 
+    @api.constrains('check_keys', 'key_quantity')
+    def _check_key_quantity(self):
+        for conduce in self:
+            if conduce.key_quantity < 0:
+                raise ValidationError(_('La cantidad de llaves no puede ser negativa.'))
+            if conduce.check_keys and not conduce.key_quantity:
+                raise ValidationError(_('Debe indicar la cantidad de llaves.'))
+
+    @api.onchange('check_keys')
+    def _onchange_check_keys(self):
+        for conduce in self:
+            if not conduce.check_keys:
+                conduce.key_quantity = 0
+
     @api.model
     def _get_checklist_fields(self):
         return self.CHECKLIST_FIELDS
@@ -415,6 +419,14 @@ class FcrVehicleConduce(models.Model):
             vals['client_signed_at'] = now if vals.get('client_signature') else False
         return vals
 
+    def _normalize_key_quantity_values(self, vals):
+        vals = dict(vals)
+        if vals.get('check_keys') is False:
+            vals['key_quantity'] = 0
+        elif 'key_quantity' in vals and 'check_keys' not in vals and not any(self.mapped('check_keys')):
+            vals['key_quantity'] = 0
+        return vals
+
     def write(self, vals):
         if vals and not self.env.context.get('vehicle_conduce_completion'):
             if any(conduce.state == 'done' for conduce in self):
@@ -422,6 +434,7 @@ class FcrVehicleConduce(models.Model):
             if vals.get('state') == 'done':
                 raise UserError(_('Use el botón Completar para completar el conduce.'))
             vals = self._update_signature_metadata(vals)
+            vals = self._normalize_key_quantity_values(vals)
         return super().write(vals)
 
     @api.model_create_multi
@@ -431,7 +444,10 @@ class FcrVehicleConduce(models.Model):
             for vals in vals_list:
                 if vals.get('state') == 'done':
                     raise UserError(_('Use el botón Completar para completar el conduce.'))
-                new_vals_list.append(self._update_signature_metadata(vals))
+                vals = self._update_signature_metadata(vals)
+                if not vals.get('check_keys'):
+                    vals['key_quantity'] = 0
+                new_vals_list.append(vals)
             vals_list = new_vals_list
         return super().create(vals_list)
 
@@ -493,6 +509,8 @@ class FcrVehicleConduce(models.Model):
         }
         for field_name in self.CHECKLIST_FIELDS:
             snapshot[f'snapshot_{field_name}'] = self[field_name]
+        snapshot['snapshot_check_keys'] = self.check_keys
+        snapshot['snapshot_key_quantity'] = self._get_key_quantity()
         return snapshot
 
     def action_mark_completed(self):
@@ -526,9 +544,17 @@ class FcrVehicleConduce(models.Model):
 
     def _check_value(self, field_name):
         self.ensure_one()
+        if field_name == 'check_keys':
+            return self.snapshot_check_keys if self.state == 'done' else self.check_keys
         if self.state == 'done':
             return self[f'snapshot_{field_name}']
         return self[field_name]
+
+    def _get_key_quantity(self):
+        self.ensure_one()
+        if self.state == 'done':
+            return self.snapshot_key_quantity
+        return self.key_quantity if self.check_keys else 0
 
     def _get_active_check_marks(self):
         self.ensure_one()
@@ -540,6 +566,15 @@ class FcrVehicleConduce(models.Model):
                 marks.append({'field': field_name, 'x': x, 'y': y})
         return marks
 
+    def _get_checklist_item_label(self, field_name):
+        self.ensure_one()
+        label = self._fields[field_name].string
+        if field_name == 'check_keys' and self._check_value(field_name):
+            quantity = self._get_key_quantity()
+            if quantity:
+                label = f'{label} {quantity}'
+        return label
+
     def _get_pdf_checklist_columns(self):
         self.ensure_one()
         columns = []
@@ -549,7 +584,7 @@ class FcrVehicleConduce(models.Model):
                 'items': [
                     {
                         'field': field_name,
-                        'label': self._fields[field_name].string,
+                        'label': self._get_checklist_item_label(field_name),
                         'checked': bool(self._check_value(field_name)),
                     }
                     for field_name in field_names

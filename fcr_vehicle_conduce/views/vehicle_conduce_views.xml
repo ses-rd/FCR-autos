@@ -111,9 +111,11 @@
                                     <field name="check_spare_tire" readonly="state == 'done'"/>
                                     <field name="check_wheel_wrench" readonly="state == 'done'"/>
                                     <field name="check_jack" readonly="state == 'done'"/>
-                                    <field name="check_key_1" readonly="state == 'done'"/>
-                                    <field name="check_key_2" readonly="state == 'done'"/>
-                                    <field name="check_key_3" readonly="state == 'done'"/>
+                                    <label for="check_keys" string="Llaves"/>
+                                    <div class="o_row">
+                                        <field name="check_keys" nolabel="1" readonly="state == 'done'"/>
+                                        <field name="key_quantity" class="oe_inline" nolabel="1" readonly="state == 'done'" invisible="not check_keys" required="check_keys" placeholder="Cantidad"/>
+                                    </div>
                                     <field name="check_pliers" readonly="state == 'done'"/>
                                     <field name="check_screwdriver" readonly="state == 'done'"/>
                                 </group>

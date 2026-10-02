@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from lxml import html as html_parser
 
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
 from odoo.tools.safe_eval import safe_eval
 
@@ -963,6 +963,8 @@ class TestVehicleConduce(TransactionCase):
             'check_radio': True,
             'check_spare_tire': True,
             'check_jack': True,
+            'check_keys': True,
+            'key_quantity': 8,
         })
         self._sign_conduce(conduce)
         conduce.action_mark_completed()
@@ -980,6 +982,8 @@ class TestVehicleConduce(TransactionCase):
         self.assertEqual(conduce.snapshot_vehicle_vin_sn, vehicle.vin_sn)
         self.assertTrue(conduce.snapshot_check_lights)
         self.assertTrue(conduce.snapshot_check_radio)
+        self.assertTrue(conduce.snapshot_check_keys)
+        self.assertEqual(conduce.snapshot_key_quantity, 8)
         self.assertEqual(picking.read(['state', 'scheduled_date', 'date_done', 'printed']), before_picking)
         self.assertEqual(picking.move_ids.read(['state', 'quantity', 'product_uom_qty']), before_moves)
         self.assertEqual(vehicle.read(['product_id', 'product_tmpl_id', 'license_plate', 'vin_sn'])[0], before_vehicle)
@@ -989,7 +993,7 @@ class TestVehicleConduce(TransactionCase):
 
     def test_checklist_columns_cover_all_check_fields_in_order(self):
         Conduce = self.env['fcr.vehicle.conduce']
-        self.assertEqual(len(Conduce._get_checklist_fields()), 41)
+        self.assertEqual(len(Conduce._get_checklist_fields()), 39)
         configured_fields = [
             field_name
             for _title, field_names in Conduce.CHECKLIST_COLUMNS
@@ -1007,20 +1011,44 @@ class TestVehicleConduce(TransactionCase):
         conduce = self.env['fcr.vehicle.conduce'].browse(
             picking.action_open_vehicle_conduce_outgoing()['res_id']
         )
-        conduce.write({'check_lights': True, 'check_radio': False, 'check_key_1': True})
+        conduce.write({'check_lights': True, 'check_radio': False, 'check_keys': True, 'key_quantity': 8})
         items = {
             item['field']: item
             for column in conduce._get_pdf_values()['checklist_columns']
             for item in column['items']
         }
         self.assertTrue(items['check_lights']['checked'])
-        self.assertNotIn('check_keys', items)
-        self.assertTrue(items['check_key_1']['checked'])
-        self.assertFalse(items['check_key_2']['checked'])
-        self.assertFalse(items['check_key_3']['checked'])
+        self.assertTrue(items['check_keys']['checked'])
         self.assertFalse(items['check_radio']['checked'])
         self.assertEqual(items['check_lights']['label'], 'Luces')
-        self.assertEqual(items['check_key_1']['label'], 'Llave 1')
+        self.assertEqual(items['check_keys']['label'], 'Llaves 8')
+
+    def test_key_quantity_defaults_zero_when_keys_unchecked(self):
+        picking, _sale = self._picking()
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        conduce.write({'check_keys': True, 'key_quantity': 3})
+        conduce.check_keys = False
+        conduce._onchange_check_keys()
+        self.assertEqual(conduce.key_quantity, 0)
+        items = {
+            item['field']: item
+            for column in conduce._get_pdf_values()['checklist_columns']
+            for item in column['items']
+        }
+        self.assertFalse(items['check_keys']['checked'])
+        self.assertEqual(items['check_keys']['label'], 'Llaves')
+        conduce.write({'key_quantity': 5})
+        self.assertEqual(conduce.key_quantity, 0)
+
+    def test_key_quantity_required_when_keys_checked(self):
+        picking, _sale = self._picking()
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        with self.assertRaisesRegex(ValidationError, 'cantidad de llaves'):
+            conduce.write({'check_keys': True, 'key_quantity': 0})
 
     def test_completion_requires_both_signatures(self):
         picking, _sale = self._picking()
@@ -1155,7 +1183,7 @@ class TestVehicleConduce(TransactionCase):
         html, _kind = self.env['ir.actions.report']._render_qweb_html(self.report.report_name, picking.ids)
         html = html.decode()
         for text in ('CONDUCE DE SALIDA', 'TEST-CHASSIS', 'Conduce test recipient',
-                     'vehicle_inspection_drawings.png', 'Luces', 'Relojes', 'Llave 1', 'Llave 2', 'Llave 3', 'Inspector',
+                     'vehicle_inspection_drawings.png', 'Luces', 'Relojes', 'Llaves', 'Inspector',
                      'Cliente', 'No firme en caso de diferencia.'):
             self.assertIn(text, html)
         self.assertNotIn('fcr-checkmark', html)
