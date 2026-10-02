@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from lxml import html as html_parser
 
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
 from odoo.tools.safe_eval import safe_eval
 
@@ -1022,6 +1022,34 @@ class TestVehicleConduce(TransactionCase):
         self.assertFalse(items['check_radio']['checked'])
         self.assertEqual(items['check_lights']['label'], 'Luces')
         self.assertEqual(items['check_keys']['label'], 'Llaves 8')
+
+    def test_key_quantity_defaults_zero_when_keys_unchecked(self):
+        picking, _sale = self._picking()
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        conduce.write({'check_keys': True, 'key_quantity': 3})
+        conduce.check_keys = False
+        conduce._onchange_check_keys()
+        self.assertEqual(conduce.key_quantity, 0)
+        items = {
+            item['field']: item
+            for column in conduce._get_pdf_values()['checklist_columns']
+            for item in column['items']
+        }
+        self.assertFalse(items['check_keys']['checked'])
+        self.assertEqual(items['check_keys']['label'], 'Llaves')
+        conduce.write({'key_quantity': 5})
+        self.assertEqual(conduce.key_quantity, 0)
+
+    def test_key_quantity_required_when_keys_checked(self):
+        picking, _sale = self._picking()
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        with self.assertRaisesRegex(ValidationError, 'cantidad de llaves'):
+            conduce.write({'check_keys': True, 'key_quantity': 0})
+
     def test_completion_requires_both_signatures(self):
         picking, _sale = self._picking()
         conduce = self.env['fcr.vehicle.conduce'].browse(

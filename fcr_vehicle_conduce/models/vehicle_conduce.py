@@ -368,11 +368,13 @@ class FcrVehicleConduce(models.Model):
             if not signatures['inspector_signature'] or not signatures['client_signature']:
                 raise ValidationError(_('El conduce completado debe tener firma de inspector y cliente.'))
 
-    @api.constrains('key_quantity')
+    @api.constrains('check_keys', 'key_quantity')
     def _check_key_quantity(self):
         for conduce in self:
             if conduce.key_quantity < 0:
                 raise ValidationError(_('La cantidad de llaves no puede ser negativa.'))
+            if conduce.check_keys and not conduce.key_quantity:
+                raise ValidationError(_('Debe indicar la cantidad de llaves.'))
 
     @api.onchange('check_keys')
     def _onchange_check_keys(self):
@@ -417,6 +419,14 @@ class FcrVehicleConduce(models.Model):
             vals['client_signed_at'] = now if vals.get('client_signature') else False
         return vals
 
+    def _normalize_key_quantity_values(self, vals):
+        vals = dict(vals)
+        if vals.get('check_keys') is False:
+            vals['key_quantity'] = 0
+        elif 'key_quantity' in vals and 'check_keys' not in vals and not any(self.mapped('check_keys')):
+            vals['key_quantity'] = 0
+        return vals
+
     def write(self, vals):
         if vals and not self.env.context.get('vehicle_conduce_completion'):
             if any(conduce.state == 'done' for conduce in self):
@@ -424,6 +434,7 @@ class FcrVehicleConduce(models.Model):
             if vals.get('state') == 'done':
                 raise UserError(_('Use el botón Completar para completar el conduce.'))
             vals = self._update_signature_metadata(vals)
+            vals = self._normalize_key_quantity_values(vals)
         return super().write(vals)
 
     @api.model_create_multi
@@ -433,7 +444,10 @@ class FcrVehicleConduce(models.Model):
             for vals in vals_list:
                 if vals.get('state') == 'done':
                     raise UserError(_('Use el botón Completar para completar el conduce.'))
-                new_vals_list.append(self._update_signature_metadata(vals))
+                vals = self._update_signature_metadata(vals)
+                if not vals.get('check_keys'):
+                    vals['key_quantity'] = 0
+                new_vals_list.append(vals)
             vals_list = new_vals_list
         return super().create(vals_list)
 
