@@ -52,7 +52,7 @@
             <img class="fcr-logo" src="/fcr_vehicle_conduce/static/src/img/fcr_logo.png" alt="FCR AUTOS.COM"/>
             <div t-if="company.street or company.street2" class="fcr-company-line"><span t-field="company.street"/><t t-if="company.street and company.street2">, </t><span t-field="company.street2"/></div>
             <div t-if="company.city or company.state_id" class="fcr-company-line"><span t-field="company.city"/><t t-if="company.city and company.state_id">, </t><span t-field="company.state_id.name"/></div>
-            <div t-if="company.phone" class="fcr-company-line">TelÃƒÂ©fono: <span t-field="company.phone"/></div>
+            <div t-if="company.phone" class="fcr-company-line">Teléfono: <span t-field="company.phone"/></div>
             <div t-if="company.email" class="fcr-company-line">E-mail: <span class="fcr-code" t-field="company.email"/></div>
             <div t-if="company.website" class="fcr-company-line"><span class="fcr-code" t-field="company.website"/></div>
             <div t-if="company.vat" class="fcr-company-line">RNC: <span t-field="company.vat"/></div>
@@ -65,8 +65,8 @@
             <table>
                 <tr>
                     <td style="width: 49%"><span t-out="conduce['partner_label']"/>: <span t-out="conduce['partner_name']"/></td>
-                    <td style="width: 25%">CÃƒÂ©dula no.: <span t-out="conduce['partner_vat']"/></td>
-                    <td style="width: 26%">TelÃƒÂ©fono: <span t-out="conduce['partner_phone']"/></td>
+                    <td style="width: 25%">Cédula no.: <span t-out="conduce['partner_vat']"/></td>
+                    <td style="width: 26%">Teléfono: <span t-out="conduce['partner_phone']"/></td>
                 </tr>
             </table>
             <table>
@@ -80,12 +80,12 @@
 
     <template id="vehicle_conduce_vehicle">
         <div class="fcr-section">
-            <div class="fcr-section-title">Datos del vehÃƒÂ­culo:</div>
+            <div class="fcr-section-title">Datos del vehículo:</div>
             <table>
                 <tr>
                     <td style="width: 31%">Marca: <span t-out="conduce['vehicle_brand']"/></td>
                     <td style="width: 46%">Modelo: <span t-out="conduce['vehicle_model']"/></td>
-                    <td style="width: 23%">AÃƒÂ±o: <span t-out="conduce['vehicle_model_year']"/></td>
+                    <td style="width: 23%">Año: <span t-out="conduce['vehicle_model_year']"/></td>
                 </tr>
             </table>
             <table>
@@ -107,7 +107,7 @@
     <template id="vehicle_conduce_checklist_items">
         <t t-foreach="items" t-as="item">
             <div class="fcr-check-item">
-                <span class="fcr-check-symbol" t-out="'?' if item['checked'] else 'Ã‚Â '"/>
+                <span class="fcr-check-symbol"><t t-if="item['checked']">&#10003;</t><t t-else="">&#160;</t></span>
                 <span t-out="item['label']"/>
             </div>
         </t>
@@ -116,7 +116,7 @@
     <template id="vehicle_conduce_inspection">
         <div class="fcr-inspection-block">
             <div class="fcr-inspection-board">
-                <img class="fcr-inspection" src="/fcr_vehicle_conduce/static/src/img/vehicle_inspection_drawings.png" alt="Referencia grÃƒÂ¡fica de inspecciÃƒÂ³n del vehÃƒÂ­culo"/>
+                <img class="fcr-inspection" src="/fcr_vehicle_conduce/static/src/img/vehicle_inspection_drawings.png" alt="Referencia gráfica de inspección del vehículo"/>
                 <div class="fcr-checklist-panel fcr-panel-indicators">
                     <t t-set="items" t-value="conduce['checklist_columns'][0]['items']"/>
                     <t t-call="fcr_vehicle_conduce.vehicle_conduce_checklist_items"/>
@@ -179,7 +179,7 @@
     </template>
 
     <template id="vehicle_conduce_footer">
-        <div class="fcr-footer">Compra venta de vehÃƒÂ­culos en ÃƒÂ³ptimo estado. ÃƒÅ¡nicos con el pago en 24 Horas.</div>
+        <div class="fcr-footer">Compra venta de vehículos en óptimo estado. Únicos con el pago en 24 Horas.</div>
     </template>
 
     <template id="vehicle_conduce_document">
