@@ -111,7 +111,6 @@
                                     <field name="check_spare_tire" readonly="state == 'done'"/>
                                     <field name="check_wheel_wrench" readonly="state == 'done'"/>
                                     <field name="check_jack" readonly="state == 'done'"/>
-                                    <field name="check_keys" readonly="state == 'done'"/>
                                     <field name="check_key_1" readonly="state == 'done'"/>
                                     <field name="check_key_2" readonly="state == 'done'"/>
                                     <field name="check_key_3" readonly="state == 'done'"/>

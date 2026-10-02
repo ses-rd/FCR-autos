@@ -989,7 +989,7 @@ class TestVehicleConduce(TransactionCase):
 
     def test_checklist_columns_cover_all_check_fields_in_order(self):
         Conduce = self.env['fcr.vehicle.conduce']
-        self.assertEqual(len(Conduce._get_checklist_fields()), 42)
+        self.assertEqual(len(Conduce._get_checklist_fields()), 41)
         configured_fields = [
             field_name
             for _title, field_names in Conduce.CHECKLIST_COLUMNS
@@ -1007,14 +1007,14 @@ class TestVehicleConduce(TransactionCase):
         conduce = self.env['fcr.vehicle.conduce'].browse(
             picking.action_open_vehicle_conduce_outgoing()['res_id']
         )
-        conduce.write({'check_lights': True, 'check_radio': False, 'check_keys': True, 'check_key_1': True})
+        conduce.write({'check_lights': True, 'check_radio': False, 'check_key_1': True})
         items = {
             item['field']: item
             for column in conduce._get_pdf_values()['checklist_columns']
             for item in column['items']
         }
         self.assertTrue(items['check_lights']['checked'])
-        self.assertTrue(items['check_keys']['checked'])
+        self.assertNotIn('check_keys', items)
         self.assertTrue(items['check_key_1']['checked'])
         self.assertFalse(items['check_key_2']['checked'])
         self.assertFalse(items['check_key_3']['checked'])

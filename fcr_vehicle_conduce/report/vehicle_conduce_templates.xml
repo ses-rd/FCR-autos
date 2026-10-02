@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- Shared pieces deliberately contain no incoming/outgoing business logic. -->
     <template id="vehicle_conduce_styles">
@@ -26,13 +26,14 @@
             .fcr-conduce .fcr-checklist-panel { position: absolute; font-size: 6.6pt; line-height: 1.06; background: transparent; }
             .fcr-conduce .fcr-check-item { white-space: nowrap; }
             .fcr-conduce .fcr-check-symbol { display: inline-block; width: 3mm; font-weight: bold; text-align: center; }
-            .fcr-conduce .fcr-panel-indicators { left: 34mm; top: 11mm; width: 28mm; }
-            .fcr-conduce .fcr-panel-audio { left: 64mm; top: 11mm; width: 36mm; }
-            .fcr-conduce .fcr-panel-interior { left: 49mm; top: 58mm; width: 29mm; }
-            .fcr-conduce .fcr-panel-engine-left { left: 3mm; top: 92mm; width: 32mm; }
-            .fcr-conduce .fcr-panel-engine-right { left: 34mm; top: 89mm; width: 42mm; }
-            .fcr-conduce .fcr-panel-exterior { left: 96mm; top: 88mm; width: 40mm; }
-            .fcr-conduce .fcr-panel-tools { left: 132mm; top: 88mm; width: 23mm; }
+            .fcr-conduce .fcr-panel-indicators { left: 34mm; top: 11mm; width: 31mm; }
+            .fcr-conduce .fcr-panel-audio { left: 65mm; top: 6mm; width: 34mm; }
+            .fcr-conduce .fcr-panel-interior { left: 50mm; top: 58mm; width: 30mm; }
+            .fcr-conduce .fcr-panel-engine-left { left: 6mm; top: 91mm; width: 32mm; }
+            .fcr-conduce .fcr-panel-engine-right { left: 42mm; top: 88mm; width: 37mm; }
+            .fcr-conduce .fcr-panel-keys { left: 141mm; top: 17mm; width: 15mm; }
+            .fcr-conduce .fcr-panel-exterior { left: 92mm; top: 89mm; width: 40mm; }
+            .fcr-conduce .fcr-panel-tools { left: 129mm; top: 89mm; width: 27mm; }
             .fcr-conduce .fcr-legal { font-size: 7.3pt; line-height: 1.16; text-align: justify; margin: 1mm 0 0; }
             .fcr-conduce .fcr-signatures { margin-top: 2.5mm; page-break-inside: avoid; }
             .fcr-conduce .fcr-signature-box { width: 60mm; height: 13mm; border-bottom: 0.3mm solid #333; }
@@ -51,7 +52,7 @@
             <img class="fcr-logo" src="/fcr_vehicle_conduce/static/src/img/fcr_logo.png" alt="FCR AUTOS.COM"/>
             <div t-if="company.street or company.street2" class="fcr-company-line"><span t-field="company.street"/><t t-if="company.street and company.street2">, </t><span t-field="company.street2"/></div>
             <div t-if="company.city or company.state_id" class="fcr-company-line"><span t-field="company.city"/><t t-if="company.city and company.state_id">, </t><span t-field="company.state_id.name"/></div>
-            <div t-if="company.phone" class="fcr-company-line">Teléfono: <span t-field="company.phone"/></div>
+            <div t-if="company.phone" class="fcr-company-line">TelÃƒÂ©fono: <span t-field="company.phone"/></div>
             <div t-if="company.email" class="fcr-company-line">E-mail: <span class="fcr-code" t-field="company.email"/></div>
             <div t-if="company.website" class="fcr-company-line"><span class="fcr-code" t-field="company.website"/></div>
             <div t-if="company.vat" class="fcr-company-line">RNC: <span t-field="company.vat"/></div>
@@ -64,8 +65,8 @@
             <table>
                 <tr>
                     <td style="width: 49%"><span t-out="conduce['partner_label']"/>: <span t-out="conduce['partner_name']"/></td>
-                    <td style="width: 25%">Cédula no.: <span t-out="conduce['partner_vat']"/></td>
-                    <td style="width: 26%">Teléfono: <span t-out="conduce['partner_phone']"/></td>
+                    <td style="width: 25%">CÃƒÂ©dula no.: <span t-out="conduce['partner_vat']"/></td>
+                    <td style="width: 26%">TelÃƒÂ©fono: <span t-out="conduce['partner_phone']"/></td>
                 </tr>
             </table>
             <table>
@@ -79,12 +80,12 @@
 
     <template id="vehicle_conduce_vehicle">
         <div class="fcr-section">
-            <div class="fcr-section-title">Datos del vehículo:</div>
+            <div class="fcr-section-title">Datos del vehÃƒÂ­culo:</div>
             <table>
                 <tr>
                     <td style="width: 31%">Marca: <span t-out="conduce['vehicle_brand']"/></td>
                     <td style="width: 46%">Modelo: <span t-out="conduce['vehicle_model']"/></td>
-                    <td style="width: 23%">Año: <span t-out="conduce['vehicle_model_year']"/></td>
+                    <td style="width: 23%">AÃƒÂ±o: <span t-out="conduce['vehicle_model_year']"/></td>
                 </tr>
             </table>
             <table>
@@ -106,7 +107,7 @@
     <template id="vehicle_conduce_checklist_items">
         <t t-foreach="items" t-as="item">
             <div class="fcr-check-item">
-                <span class="fcr-check-symbol" t-out="'✓' if item['checked'] else ' '"/>
+                <span class="fcr-check-symbol" t-out="'?' if item['checked'] else 'Ã‚Â '"/>
                 <span t-out="item['label']"/>
             </div>
         </t>
@@ -115,7 +116,7 @@
     <template id="vehicle_conduce_inspection">
         <div class="fcr-inspection-block">
             <div class="fcr-inspection-board">
-                <img class="fcr-inspection" src="/fcr_vehicle_conduce/static/src/img/vehicle_inspection_drawings.png" alt="Referencia gráfica de inspección del vehículo"/>
+                <img class="fcr-inspection" src="/fcr_vehicle_conduce/static/src/img/vehicle_inspection_drawings.png" alt="Referencia grÃƒÂ¡fica de inspecciÃƒÂ³n del vehÃƒÂ­culo"/>
                 <div class="fcr-checklist-panel fcr-panel-indicators">
                     <t t-set="items" t-value="conduce['checklist_columns'][0]['items']"/>
                     <t t-call="fcr_vehicle_conduce.vehicle_conduce_checklist_items"/>
@@ -136,12 +137,16 @@
                     <t t-set="items" t-value="conduce['checklist_columns'][2]['items'][8:]"/>
                     <t t-call="fcr_vehicle_conduce.vehicle_conduce_checklist_items"/>
                 </div>
+                <div class="fcr-checklist-panel fcr-panel-keys">
+                    <t t-set="items" t-value="conduce['checklist_columns'][3]['items'][6:9]"/>
+                    <t t-call="fcr_vehicle_conduce.vehicle_conduce_checklist_items"/>
+                </div>
                 <div class="fcr-checklist-panel fcr-panel-exterior">
                     <t t-set="items" t-value="conduce['checklist_columns'][3]['items'][:5]"/>
                     <t t-call="fcr_vehicle_conduce.vehicle_conduce_checklist_items"/>
                 </div>
                 <div class="fcr-checklist-panel fcr-panel-tools">
-                    <t t-set="items" t-value="conduce['checklist_columns'][3]['items'][5:]"/>
+                    <t t-set="items" t-value="conduce['checklist_columns'][3]['items'][5:6] + conduce['checklist_columns'][3]['items'][9:]"/>
                     <t t-call="fcr_vehicle_conduce.vehicle_conduce_checklist_items"/>
                 </div>
             </div>
@@ -174,7 +179,7 @@
     </template>
 
     <template id="vehicle_conduce_footer">
-        <div class="fcr-footer">Compra venta de vehículos en óptimo estado. Únicos con el pago en 24 Horas.</div>
+        <div class="fcr-footer">Compra venta de vehÃƒÂ­culos en ÃƒÂ³ptimo estado. ÃƒÅ¡nicos con el pago en 24 Horas.</div>
     </template>
 
     <template id="vehicle_conduce_document">
