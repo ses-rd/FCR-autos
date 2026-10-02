@@ -114,6 +114,7 @@
                                     <label for="check_keys" string="Llaves"/>
                                     <div class="o_row">
                                         <field name="check_keys" nolabel="1" readonly="state == 'done'"/>
+                                        <span invisible="not check_keys">Cantidad</span>
                                         <field name="key_quantity" class="oe_inline" nolabel="1" readonly="state == 'done'" invisible="not check_keys" required="check_keys" placeholder="Cantidad"/>
                                     </div>
                                     <field name="check_pliers" readonly="state == 'done'"/>
