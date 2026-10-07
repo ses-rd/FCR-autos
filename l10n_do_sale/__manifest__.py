@@ -13,6 +13,7 @@
     "depends": ["l10n_do_ecf", "sale_management"],
     "data": [
          "views/sale_order_view.xml",
+         "views/sale_order_receipt_report.xml",
     ],
     "auto_install": True,
 }
