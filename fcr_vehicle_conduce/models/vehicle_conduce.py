@@ -211,7 +211,7 @@ class FcrVehicleConduce(models.Model):
     check_hydraulic_oil_cap = fields.Boolean(string='Tapón Aceite Hidráulico')
     check_coolant_cap = fields.Boolean(string='Tapón de Coolant')
     check_radiator_cap = fields.Boolean(string='Tapón de Radiador')
-    check_battery_no_7 = fields.Boolean(string='Baterías No. 7')
+    check_battery_no_7 = fields.Boolean(string='Baterías')
     battery_quantity = fields.Integer(string='Cantidad de baterías')
     check_battery_terminal_cover = fields.Boolean(string='Cover Polo Batería')
     check_engine_cover = fields.Boolean(string='Cover Tapa de Motor')

@@ -1021,7 +1021,7 @@ class TestVehicleConduce(TransactionCase):
         self.assertFalse(items['check_radio']['checked'])
         self.assertEqual(items['check_lights']['label'], 'Luces')
         self.assertEqual(items['check_keys']['label'], 'Llaves 8')
-        self.assertEqual(items['check_battery_no_7']['label'], 'Baterías No. 7 - #2')
+        self.assertEqual(items['check_battery_no_7']['label'], 'Baterías - #2')
         self.assertEqual(items['check_wheel_center_cap']['label'], 'Centro de aros x4')
         for removed_field in ('check_cassette_player', 'check_cd_changer', 'check_lighter', 'check_ashtray'):
             self.assertNotIn(removed_field, items)
@@ -1186,7 +1186,7 @@ class TestVehicleConduce(TransactionCase):
         html = html.decode()
         for text in ('CONDUCE DE SALIDA', 'TEST-CHASSIS', 'Conduce test recipient',
                      'vehicle_inspection_drawings.png', 'Luces', 'Relojes', 'Centro de aros x4', 'Llaves',
-                     'Baterías No. 7', 'Inspector', 'Cliente', 'No firme en caso de diferencia.'):
+                     'Baterías', 'Inspector', 'Cliente', 'No firme en caso de diferencia.'):
             self.assertIn(text, html)
         for removed_text in ('Toca Cassette', 'CD Changer', 'Encendedor', 'Gaveta Cenicero', 'Tapa Bocina/Centro Aro'):
             self.assertNotIn(removed_text, html)

@@ -96,7 +96,7 @@
                                     <field name="check_radiator_cap" readonly="state == 'done'"/>
                                 </group>
                                 <group>
-                                    <label for="check_battery_no_7" string="Baterías No. 7"/>
+                                    <label for="check_battery_no_7" string="Baterías"/>
                                     <div class="o_row">
                                         <field name="check_battery_no_7" nolabel="1" readonly="state == 'done'"/>
                                         <span invisible="not check_battery_no_7">Cantidad</span>
