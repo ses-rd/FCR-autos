@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from lxml import html as html_parser
 
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
 from odoo.tools.safe_eval import safe_eval
 
@@ -989,7 +989,7 @@ class TestVehicleConduce(TransactionCase):
 
     def test_checklist_columns_cover_all_check_fields_in_order(self):
         Conduce = self.env['fcr.vehicle.conduce']
-        self.assertEqual(len(Conduce._get_checklist_fields()), 41)
+        self.assertEqual(len(Conduce._get_checklist_fields()), 35)
         configured_fields = [
             field_name
             for _title, field_names in Conduce.CHECKLIST_COLUMNS
@@ -1007,20 +1007,50 @@ class TestVehicleConduce(TransactionCase):
         conduce = self.env['fcr.vehicle.conduce'].browse(
             picking.action_open_vehicle_conduce_outgoing()['res_id']
         )
-        conduce.write({'check_lights': True, 'check_radio': False, 'check_key_1': True})
+        conduce.write({'check_lights': True, 'check_radio': False, 'check_keys': True, 'key_quantity': 8, 'check_battery_no_7': True, 'battery_quantity': 2})
         items = {
             item['field']: item
             for column in conduce._get_pdf_values()['checklist_columns']
             for item in column['items']
         }
         self.assertTrue(items['check_lights']['checked'])
-        self.assertNotIn('check_keys', items)
-        self.assertTrue(items['check_key_1']['checked'])
-        self.assertFalse(items['check_key_2']['checked'])
-        self.assertFalse(items['check_key_3']['checked'])
+        self.assertTrue(items['check_keys']['checked'])
+        self.assertNotIn('check_key_1', items)
+        self.assertNotIn('check_key_2', items)
+        self.assertNotIn('check_key_3', items)
         self.assertFalse(items['check_radio']['checked'])
         self.assertEqual(items['check_lights']['label'], 'Luces')
-        self.assertEqual(items['check_key_1']['label'], 'Llave 1')
+        self.assertEqual(items['check_keys']['label'], 'Llaves 8')
+        self.assertEqual(items['check_battery_no_7']['label'], 'Baterías No. 7 - #2')
+        self.assertEqual(items['check_wheel_center_cap']['label'], 'Centro de aros x4')
+        for removed_field in ('check_cassette_player', 'check_cd_changer', 'check_lighter', 'check_ashtray'):
+            self.assertNotIn(removed_field, items)
+
+    def test_quantities_default_zero_when_unchecked(self):
+        picking, _sale = self._picking()
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        conduce.write({'check_keys': True, 'key_quantity': 3, 'check_battery_no_7': True, 'battery_quantity': 2})
+        conduce.check_keys = False
+        conduce._onchange_check_keys()
+        conduce.check_battery_no_7 = False
+        conduce._onchange_check_battery_no_7()
+        self.assertEqual(conduce.key_quantity, 0)
+        self.assertEqual(conduce.battery_quantity, 0)
+        conduce.write({'key_quantity': 5, 'battery_quantity': 4})
+        self.assertEqual(conduce.key_quantity, 0)
+        self.assertEqual(conduce.battery_quantity, 0)
+
+    def test_quantities_required_when_checked(self):
+        picking, _sale = self._picking()
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        with self.assertRaisesRegex(ValidationError, 'cantidad de llaves'):
+            conduce.write({'check_keys': True, 'key_quantity': 0})
+        with self.assertRaisesRegex(ValidationError, 'cantidad de baterías'):
+            conduce.write({'check_battery_no_7': True, 'battery_quantity': 0})
 
     def test_completion_requires_both_signatures(self):
         picking, _sale = self._picking()
@@ -1155,9 +1185,11 @@ class TestVehicleConduce(TransactionCase):
         html, _kind = self.env['ir.actions.report']._render_qweb_html(self.report.report_name, picking.ids)
         html = html.decode()
         for text in ('CONDUCE DE SALIDA', 'TEST-CHASSIS', 'Conduce test recipient',
-                     'vehicle_inspection_drawings.png', 'Luces', 'Relojes', 'Llave 1', 'Llave 2', 'Llave 3', 'Inspector',
-                     'Cliente', 'No firme en caso de diferencia.'):
+                     'vehicle_inspection_drawings.png', 'Luces', 'Relojes', 'Centro de aros x4', 'Llaves',
+                     'Baterías No. 7', 'Inspector', 'Cliente', 'No firme en caso de diferencia.'):
             self.assertIn(text, html)
+        for removed_text in ('Toca Cassette', 'CD Changer', 'Encendedor', 'Gaveta Cenicero', 'Tapa Bocina/Centro Aro'):
+            self.assertNotIn(removed_text, html)
         self.assertNotIn('fcr-checkmark', html)
         self.assertNotIn('position: absolute', html)
 
