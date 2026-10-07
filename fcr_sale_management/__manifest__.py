@@ -10,6 +10,7 @@
     "depends": ["sale_management", "fcr_invoice_report"],
     "data": [
         "views/sale_order_report.xml",
+        "views/sale_order_receipt_report.xml",
     ],
     "license": "LGPL-3",
 }
