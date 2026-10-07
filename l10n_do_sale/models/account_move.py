@@ -25,7 +25,26 @@ class AccountMove(models.Model):
     def _get_sale_receipt_sale_order(self):
         self.ensure_one()
         sale_lines = self.invoice_line_ids.mapped("sale_line_ids")
-        return sale_lines.mapped("order_id")[:1]
+        sale_order = sale_lines.mapped("order_id")[:1]
+        if sale_order:
+            return sale_order
+
+        if self.invoice_origin:
+            origins = [
+                origin.strip()
+                for origin in self.invoice_origin.replace(";", ",").split(",")
+                if origin.strip()
+            ]
+            if origins:
+                return self.env["sale.order"].search([("name", "in", origins)], limit=1)
+        return self.env["sale.order"]
+
+    def _get_sale_receipt_document_label(self):
+        self.ensure_one()
+        sale_order = self._get_sale_receipt_sale_order()
+        if sale_order and sale_order.state in ("draft", "sent"):
+            return sale_order._get_sale_receipt_document_label()
+        return "FACTURA"
 
     def _get_sale_receipt_vehicle(self):
         self.ensure_one()
@@ -109,8 +128,11 @@ class AccountMove(models.Model):
 
     def _get_sale_receipt_values(self):
         self.ensure_one()
-        partner = self.partner_id
         sale_order = self._get_sale_receipt_sale_order()
+        if sale_order and sale_order.state in ("draft", "sent"):
+            return sale_order._get_sale_receipt_values()
+
+        partner = self.partner_id
         paid_amount = self.amount_total - self.amount_residual
         phone = partner.phone or ""
         if not phone and "mobile" in partner._fields:
@@ -121,7 +143,7 @@ class AccountMove(models.Model):
 
         return {
             "date_text": self._get_sale_receipt_date_text(),
-            "document_label": "FACTURA",
+            "document_label": self._get_sale_receipt_document_label(),
             "company": self.company_id,
             "client": partner.name or "",
             "vat": partner.vat or "",
