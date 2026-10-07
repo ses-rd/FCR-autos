@@ -39,7 +39,7 @@ class AccountMove(models.Model):
         model = vehicle.model_id if vehicle else False
         brand = model.brand_id if model and "brand_id" in model._fields else False
 
-        return {
+        vehicle_values = {
             "brand": brand.name if brand else "",
             "model": model.name if model else product.display_name if product else "",
             "year": vehicle.model_year if vehicle and "model_year" in vehicle._fields else "",
@@ -49,6 +49,24 @@ class AccountMove(models.Model):
             "color": vehicle.color if vehicle and "color" in vehicle._fields else "",
             "type": vehicle.category_id.name if vehicle and "category_id" in vehicle._fields and vehicle.category_id else "",
         }
+        vehicle_values["has_vehicle"] = bool(vehicle) or bool(
+            vehicle_values["brand"]
+            or vehicle_values["year"]
+            or vehicle_values["license_plate"]
+            or vehicle_values["chassis"]
+            or vehicle_values["mileage"]
+            or vehicle_values["color"]
+            or vehicle_values["type"]
+        )
+        return vehicle_values
+
+    def _get_sale_receipt_items_text(self):
+        self.ensure_one()
+        sale_order = self._get_sale_receipt_sale_order()
+        if sale_order:
+            return sale_order._get_sale_receipt_items_text()
+        lines = self.invoice_line_ids.filtered(lambda line: not line.display_type)
+        return ", ".join(lines.mapped("name"))
 
     def _get_sale_receipt_values(self):
         self.ensure_one()
@@ -69,11 +87,13 @@ class AccountMove(models.Model):
 
         return {
             "date_text": self._get_sale_receipt_date_text(),
+            "company": self.company_id,
             "client": partner.name or "",
             "vat": partner.vat or "",
             "phone": phone,
             "email": partner.email or "",
             "vehicle": self._get_sale_receipt_vehicle(),
+            "items_text": self._get_sale_receipt_items_text(),
             "initial_payment": paid_amount,
             "total_cost": self.amount_total,
             "balance": self.amount_residual,
