@@ -137,7 +137,19 @@
                             .fcr-vehicle-table,
                             .fcr-amount-table {
                                 width: 100%;
-                                border-collapse: collapse;
+                                border-collapse: separate !important;
+                                border-spacing: 0 !important;
+                                border: 0 !important;
+                            }
+                            .fcr-receipt-page table,
+                            .fcr-receipt-page thead,
+                            .fcr-receipt-page tbody,
+                            .fcr-receipt-page tr,
+                            .fcr-receipt-page th,
+                            .fcr-receipt-page td {
+                                border: 0 !important;
+                                outline: 0 !important;
+                                box-shadow: none !important;
                             }
                             .fcr-client-table td,
                             .fcr-vehicle-table td,
@@ -345,5 +357,21 @@
                 </div>
             </t>
         </t>
+    </template>
+
+    <template id="sale_order_portal_receipt_content" inherit_id="sale.sale_order_portal_template">
+        <xpath expr="//div[@id='portal_sale_content']" position="replace">
+            <div id="portal_sale_content" class="o_portal_html_view position-relative bg-white shadow overflow-hidden" style="min-height: 1120px;">
+                <iframe
+                    id="fcr_sale_order_html"
+                    class="position-relative d-block"
+                    width="100%"
+                    height="1120"
+                    frameborder="0"
+                    scrolling="no"
+                    t-att-src="sale_order.get_portal_url(report_type='html')"
+                />
+            </div>
+        </xpath>
     </template>
 </odoo>
