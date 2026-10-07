@@ -17,14 +17,10 @@ class FcrVehicleConduce(models.Model):
         'check_glasses',
         'check_window_switches',
         'check_radio',
-        'check_cassette_player',
-        'check_cd_changer',
         'check_antenna',
         'check_air_conditioning',
         'check_cup_holder',
-        'check_lighter',
         'check_center_console_lid',
-        'check_ashtray',
         'check_headliner',
         'check_seat_upholstery',
         'check_moldings',
@@ -60,14 +56,10 @@ class FcrVehicleConduce(models.Model):
         'check_glasses': (27.0, 27.2),
         'check_window_switches': (27.0, 29.8),
         'check_radio': (27.0, 32.4),
-        'check_cassette_player': (45.8, 14.2),
-        'check_cd_changer': (45.8, 16.8),
         'check_antenna': (45.8, 19.4),
         'check_air_conditioning': (45.8, 22.0),
         'check_cup_holder': (45.8, 24.6),
-        'check_lighter': (45.8, 27.2),
         'check_center_console_lid': (45.8, 29.8),
-        'check_ashtray': (45.8, 32.4),
         'check_headliner': (67.1, 14.1),
         'check_seat_upholstery': (38.2, 60.9),
         'check_moldings': (38.2, 63.6),
@@ -110,14 +102,10 @@ class FcrVehicleConduce(models.Model):
         (
             'Audio / accesorios',
             (
-                'check_cassette_player',
-                'check_cd_changer',
                 'check_antenna',
                 'check_air_conditioning',
                 'check_cup_holder',
-                'check_lighter',
                 'check_center_console_lid',
-                'check_ashtray',
                 'check_headliner',
             ),
         ),
@@ -207,14 +195,10 @@ class FcrVehicleConduce(models.Model):
     check_glasses = fields.Boolean(string='Cristales')
     check_window_switches = fields.Boolean(string='Switch Cristales')
     check_radio = fields.Boolean(string='Radio')
-    check_cassette_player = fields.Boolean(string='Toca Cassette')
-    check_cd_changer = fields.Boolean(string='CD Changer')
     check_antenna = fields.Boolean(string='Antena')
     check_air_conditioning = fields.Boolean(string='Aire Acondicionado')
     check_cup_holder = fields.Boolean(string='Porta Vasos')
-    check_lighter = fields.Boolean(string='Encendedor')
     check_center_console_lid = fields.Boolean(string='Tapa Consola Central')
-    check_ashtray = fields.Boolean(string='Gaveta Cenicero')
     check_headliner = fields.Boolean(string='Forro Techo')
     check_seat_upholstery = fields.Boolean(string='Tapizados Asientos')
     check_moldings = fields.Boolean(string='Molduras')
@@ -227,12 +211,13 @@ class FcrVehicleConduce(models.Model):
     check_hydraulic_oil_cap = fields.Boolean(string='Tapón Aceite Hidráulico')
     check_coolant_cap = fields.Boolean(string='Tapón de Coolant')
     check_radiator_cap = fields.Boolean(string='Tapón de Radiador')
-    check_battery_no_7 = fields.Boolean(string='Baterías No. 7')
+    check_battery_no_7 = fields.Boolean(string='Baterías')
+    battery_quantity = fields.Integer(string='Cantidad de baterías')
     check_battery_terminal_cover = fields.Boolean(string='Cover Polo Batería')
     check_engine_cover = fields.Boolean(string='Cover Tapa de Motor')
     check_bumper_converter_cover = fields.Boolean(string='Tapa Convertora Bumper')
     check_lens = fields.Boolean(string='Mica')
-    check_wheel_center_cap = fields.Boolean(string='Tapa Bocina/Centro Aro')
+    check_wheel_center_cap = fields.Boolean(string='Centro de aros x4')
     check_spare_tire = fields.Boolean(string='Goma de Repuesto')
     check_wheel_wrench = fields.Boolean(string='Llave Ruedas')
     check_jack = fields.Boolean(string='Gato')
@@ -274,14 +259,10 @@ class FcrVehicleConduce(models.Model):
     snapshot_check_glasses = fields.Boolean(string='Snapshot check_glasses', readonly=True, copy=False)
     snapshot_check_window_switches = fields.Boolean(string='Snapshot check_window_switches', readonly=True, copy=False)
     snapshot_check_radio = fields.Boolean(string='Snapshot check_radio', readonly=True, copy=False)
-    snapshot_check_cassette_player = fields.Boolean(string='Snapshot check_cassette_player', readonly=True, copy=False)
-    snapshot_check_cd_changer = fields.Boolean(string='Snapshot check_cd_changer', readonly=True, copy=False)
     snapshot_check_antenna = fields.Boolean(string='Snapshot check_antenna', readonly=True, copy=False)
     snapshot_check_air_conditioning = fields.Boolean(string='Snapshot check_air_conditioning', readonly=True, copy=False)
     snapshot_check_cup_holder = fields.Boolean(string='Snapshot check_cup_holder', readonly=True, copy=False)
-    snapshot_check_lighter = fields.Boolean(string='Snapshot check_lighter', readonly=True, copy=False)
     snapshot_check_center_console_lid = fields.Boolean(string='Snapshot check_center_console_lid', readonly=True, copy=False)
-    snapshot_check_ashtray = fields.Boolean(string='Snapshot check_ashtray', readonly=True, copy=False)
     snapshot_check_headliner = fields.Boolean(string='Snapshot check_headliner', readonly=True, copy=False)
     snapshot_check_seat_upholstery = fields.Boolean(string='Snapshot check_seat_upholstery', readonly=True, copy=False)
     snapshot_check_moldings = fields.Boolean(string='Snapshot check_moldings', readonly=True, copy=False)
@@ -294,6 +275,7 @@ class FcrVehicleConduce(models.Model):
     snapshot_check_coolant_cap = fields.Boolean(string='Snapshot check_coolant_cap', readonly=True, copy=False)
     snapshot_check_radiator_cap = fields.Boolean(string='Snapshot check_radiator_cap', readonly=True, copy=False)
     snapshot_check_battery_no_7 = fields.Boolean(string='Snapshot check_battery_no_7', readonly=True, copy=False)
+    snapshot_battery_quantity = fields.Integer(string='Snapshot cantidad de baterías', readonly=True, copy=False)
     snapshot_check_battery_terminal_cover = fields.Boolean(string='Snapshot check_battery_terminal_cover', readonly=True, copy=False)
     snapshot_check_engine_cover = fields.Boolean(string='Snapshot check_engine_cover', readonly=True, copy=False)
     snapshot_check_bumper_converter_cover = fields.Boolean(string='Snapshot check_bumper_converter_cover', readonly=True, copy=False)
@@ -368,13 +350,23 @@ class FcrVehicleConduce(models.Model):
             if not signatures['inspector_signature'] or not signatures['client_signature']:
                 raise ValidationError(_('El conduce completado debe tener firma de inspector y cliente.'))
 
-    @api.constrains('check_keys', 'key_quantity')
-    def _check_key_quantity(self):
+    @api.constrains('check_battery_no_7', 'battery_quantity', 'check_keys', 'key_quantity')
+    def _check_quantity_fields(self):
         for conduce in self:
+            if conduce.battery_quantity < 0:
+                raise ValidationError(_('La cantidad de baterías no puede ser negativa.'))
+            if conduce.check_battery_no_7 and not conduce.battery_quantity:
+                raise ValidationError(_('Debe indicar la cantidad de baterías.'))
             if conduce.key_quantity < 0:
                 raise ValidationError(_('La cantidad de llaves no puede ser negativa.'))
             if conduce.check_keys and not conduce.key_quantity:
                 raise ValidationError(_('Debe indicar la cantidad de llaves.'))
+
+    @api.onchange('check_battery_no_7')
+    def _onchange_check_battery_no_7(self):
+        for conduce in self:
+            if not conduce.check_battery_no_7:
+                conduce.battery_quantity = 0
 
     @api.onchange('check_keys')
     def _onchange_check_keys(self):
@@ -419,8 +411,12 @@ class FcrVehicleConduce(models.Model):
             vals['client_signed_at'] = now if vals.get('client_signature') else False
         return vals
 
-    def _normalize_key_quantity_values(self, vals):
+    def _normalize_quantity_values(self, vals):
         vals = dict(vals)
+        if vals.get('check_battery_no_7') is False:
+            vals['battery_quantity'] = 0
+        elif 'battery_quantity' in vals and 'check_battery_no_7' not in vals and not any(self.mapped('check_battery_no_7')):
+            vals['battery_quantity'] = 0
         if vals.get('check_keys') is False:
             vals['key_quantity'] = 0
         elif 'key_quantity' in vals and 'check_keys' not in vals and not any(self.mapped('check_keys')):
@@ -434,7 +430,7 @@ class FcrVehicleConduce(models.Model):
             if vals.get('state') == 'done':
                 raise UserError(_('Use el botón Completar para completar el conduce.'))
             vals = self._update_signature_metadata(vals)
-            vals = self._normalize_key_quantity_values(vals)
+            vals = self._normalize_quantity_values(vals)
         return super().write(vals)
 
     @api.model_create_multi
@@ -445,6 +441,8 @@ class FcrVehicleConduce(models.Model):
                 if vals.get('state') == 'done':
                     raise UserError(_('Use el botón Completar para completar el conduce.'))
                 vals = self._update_signature_metadata(vals)
+                if not vals.get('check_battery_no_7'):
+                    vals['battery_quantity'] = 0
                 if not vals.get('check_keys'):
                     vals['key_quantity'] = 0
                 new_vals_list.append(vals)
@@ -509,6 +507,7 @@ class FcrVehicleConduce(models.Model):
         }
         for field_name in self.CHECKLIST_FIELDS:
             snapshot[f'snapshot_{field_name}'] = self[field_name]
+        snapshot['snapshot_battery_quantity'] = self._get_battery_quantity()
         snapshot['snapshot_check_keys'] = self.check_keys
         snapshot['snapshot_key_quantity'] = self._get_key_quantity()
         return snapshot
@@ -550,6 +549,12 @@ class FcrVehicleConduce(models.Model):
             return self[f'snapshot_{field_name}']
         return self[field_name]
 
+    def _get_battery_quantity(self):
+        self.ensure_one()
+        if self.state == 'done':
+            return self.snapshot_battery_quantity
+        return self.battery_quantity if self.check_battery_no_7 else 0
+
     def _get_key_quantity(self):
         self.ensure_one()
         if self.state == 'done':
@@ -569,7 +574,11 @@ class FcrVehicleConduce(models.Model):
     def _get_checklist_item_label(self, field_name):
         self.ensure_one()
         label = self._fields[field_name].string
-        if field_name == 'check_keys' and self._check_value(field_name):
+        if field_name == 'check_battery_no_7' and self._check_value(field_name):
+            quantity = self._get_battery_quantity()
+            if quantity:
+                label = f'{label} - #{quantity}'
+        elif field_name == 'check_keys' and self._check_value(field_name):
             quantity = self._get_key_quantity()
             if quantity:
                 label = f'{label} {quantity}'

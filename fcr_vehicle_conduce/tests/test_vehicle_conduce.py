@@ -963,6 +963,8 @@ class TestVehicleConduce(TransactionCase):
             'check_radio': True,
             'check_spare_tire': True,
             'check_jack': True,
+            'check_battery_no_7': True,
+            'battery_quantity': 2,
             'check_keys': True,
             'key_quantity': 8,
         })
@@ -982,6 +984,8 @@ class TestVehicleConduce(TransactionCase):
         self.assertEqual(conduce.snapshot_vehicle_vin_sn, vehicle.vin_sn)
         self.assertTrue(conduce.snapshot_check_lights)
         self.assertTrue(conduce.snapshot_check_radio)
+        self.assertTrue(conduce.snapshot_check_battery_no_7)
+        self.assertEqual(conduce.snapshot_battery_quantity, 2)
         self.assertTrue(conduce.snapshot_check_keys)
         self.assertEqual(conduce.snapshot_key_quantity, 8)
         self.assertEqual(picking.read(['state', 'scheduled_date', 'date_done', 'printed']), before_picking)
@@ -993,7 +997,7 @@ class TestVehicleConduce(TransactionCase):
 
     def test_checklist_columns_cover_all_check_fields_in_order(self):
         Conduce = self.env['fcr.vehicle.conduce']
-        self.assertEqual(len(Conduce._get_checklist_fields()), 39)
+        self.assertEqual(len(Conduce._get_checklist_fields()), 35)
         configured_fields = [
             field_name
             for _title, field_names in Conduce.CHECKLIST_COLUMNS
@@ -1011,7 +1015,14 @@ class TestVehicleConduce(TransactionCase):
         conduce = self.env['fcr.vehicle.conduce'].browse(
             picking.action_open_vehicle_conduce_outgoing()['res_id']
         )
-        conduce.write({'check_lights': True, 'check_radio': False, 'check_keys': True, 'key_quantity': 8})
+        conduce.write({
+            'check_lights': True,
+            'check_radio': False,
+            'check_battery_no_7': True,
+            'battery_quantity': 2,
+            'check_keys': True,
+            'key_quantity': 8,
+        })
         items = {
             item['field']: item
             for column in conduce._get_pdf_values()['checklist_columns']
@@ -1021,7 +1032,11 @@ class TestVehicleConduce(TransactionCase):
         self.assertTrue(items['check_keys']['checked'])
         self.assertFalse(items['check_radio']['checked'])
         self.assertEqual(items['check_lights']['label'], 'Luces')
+        self.assertEqual(items['check_battery_no_7']['label'], 'Baterías - #2')
+        self.assertEqual(items['check_wheel_center_cap']['label'], 'Centro de aros x4')
         self.assertEqual(items['check_keys']['label'], 'Llaves 8')
+        for field_name in ('check_cassette_player', 'check_cd_changer', 'check_lighter', 'check_ashtray'):
+            self.assertNotIn(field_name, items)
 
     def test_key_quantity_defaults_zero_when_keys_unchecked(self):
         picking, _sale = self._picking()
@@ -1049,6 +1064,33 @@ class TestVehicleConduce(TransactionCase):
         )
         with self.assertRaisesRegex(ValidationError, 'cantidad de llaves'):
             conduce.write({'check_keys': True, 'key_quantity': 0})
+
+    def test_battery_quantity_defaults_zero_when_batteries_unchecked(self):
+        picking, _sale = self._picking()
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        conduce.write({'check_battery_no_7': True, 'battery_quantity': 2})
+        conduce.check_battery_no_7 = False
+        conduce._onchange_check_battery_no_7()
+        self.assertEqual(conduce.battery_quantity, 0)
+        items = {
+            item['field']: item
+            for column in conduce._get_pdf_values()['checklist_columns']
+            for item in column['items']
+        }
+        self.assertFalse(items['check_battery_no_7']['checked'])
+        self.assertEqual(items['check_battery_no_7']['label'], 'Baterías')
+        conduce.write({'battery_quantity': 4})
+        self.assertEqual(conduce.battery_quantity, 0)
+
+    def test_battery_quantity_required_when_batteries_checked(self):
+        picking, _sale = self._picking()
+        conduce = self.env['fcr.vehicle.conduce'].browse(
+            picking.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        with self.assertRaisesRegex(ValidationError, 'cantidad de baterías'):
+            conduce.write({'check_battery_no_7': True, 'battery_quantity': 0})
 
     def test_completion_requires_both_signatures(self):
         picking, _sale = self._picking()
@@ -1183,11 +1225,13 @@ class TestVehicleConduce(TransactionCase):
         html, _kind = self.env['ir.actions.report']._render_qweb_html(self.report.report_name, picking.ids)
         html = html.decode()
         for text in ('CONDUCE DE SALIDA', 'TEST-CHASSIS', 'Conduce test recipient',
-                     'vehicle_inspection_drawings.png', 'Luces', 'Relojes', 'Llaves', 'Inspector',
+                     'vehicle_inspection_drawings.png', 'Luces', 'Relojes', 'Baterías', 'Centro de aros x4', 'Llaves', 'Inspector',
                      'Cliente', 'No firme en caso de diferencia.'):
             self.assertIn(text, html)
         self.assertNotIn('fcr-checkmark', html)
         self.assertNotIn('position: absolute', html)
+        for text in ('Toca Cassette', 'CD Changer', 'Encendedor', 'Gaveta Cenicero', 'Tapa Bocina/Centro Aro', 'Baterías No. 7'):
+            self.assertNotIn(text, html)
 
     def test_render_escapes_dynamic_html_and_preserves_long_values(self):
         picking, _sale = self._picking()
