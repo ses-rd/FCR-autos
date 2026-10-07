@@ -95,11 +95,11 @@
                 <div class="article" t-att-data-oe-model="doc._name" t-att-data-oe-id="doc.id">
                     <div class="page fcr-receipt-page">
                         <style>
-                            body { background: #202020; }
+                            body { background: #ffffff; }
                             .fcr-receipt-page {
-                                background: #202020;
-                                color: #f4f4f4;
-                                border: 1px solid #8a8a8a;
+                                background: #ffffff;
+                                color: #111111;
+                                border: 1px solid #7f7f7f;
                                 font-family: Arial, Helvetica, sans-serif;
                                 font-size: 14px;
                                 line-height: 1.35;
@@ -108,19 +108,19 @@
                             }
                             .fcr-header {
                                 text-align: center;
-                                color: #bdbdbd;
+                                color: #6f6f6f;
                                 line-height: 1.22;
                             }
                             .fcr-logo {
                                 max-height: 58px;
                                 max-width: 360px;
-                                background: #f4f4f4;
+                                background: #ffffff;
                                 padding: 2px 6px;
                             }
                             .fcr-logo-text {
                                 display: inline-block;
-                                background: #f4f4f4;
-                                color: #777;
+                                background: #ffffff;
+                                color: #777777;
                                 font-size: 36px;
                                 font-weight: 700;
                                 letter-spacing: 0;
@@ -131,7 +131,7 @@
                             .fcr-date {
                                 margin: 28px 0 34px;
                                 text-align: right;
-                                color: #ff4b4b;
+                                color: #d93636;
                             }
                             .fcr-client-table,
                             .fcr-vehicle-table,
@@ -146,12 +146,12 @@
                                 vertical-align: top;
                             }
                             .fcr-label {
-                                color: #ffffff;
+                                color: #111111;
                                 font-weight: 700;
                                 white-space: nowrap;
                             }
                             .fcr-value,
-                            .fcr-red { color: #ff4b4b; }
+                            .fcr-red { color: #d93636; }
                             .fcr-intro {
                                 margin: 42px 0 26px;
                                 width: 92%;
@@ -171,7 +171,7 @@
                                 width: 14%;
                                 padding-left: 8px !important;
                             }
-                            .fcr-note-side { color: #ff4b4b; }
+                            .fcr-note-side { color: #d93636; }
                             .fcr-main-note { margin-top: 44px; }
                             .fcr-signature {
                                 margin: 58px auto 0;
@@ -179,13 +179,13 @@
                                 text-align: center;
                             }
                             .fcr-signature-line {
-                                border-top: 1px solid #eeeeee;
+                                border-top: 1px solid #111111;
                                 padding-top: 6px;
                             }
                             .fcr-footer {
                                 margin-top: 36px;
                                 text-align: center;
-                                color: #bdbdbd;
+                                color: #6f6f6f;
                             }
                         </style>
 
@@ -197,7 +197,7 @@
                             <div>Calle Paseo de los Profesores no. 14, Mirador Sur.</div>
                             <div>Santo Domingo, D.N.</div>
                             <div>Teléfono: 809.793.7676</div>
-                            <div>E-mail: <span style="color:#9eb5ff;">info@fcrautos.com</span></div>
+                            <div>E-mail: <span style="color:#3157a4;">info@fcrautos.com</span></div>
                             <div>FCRAUTOS.com</div>
                             <div>RNC: <span t-esc="company.vat if company and company.vat else '1-31-53719-7'"/></div>
                         </div>
