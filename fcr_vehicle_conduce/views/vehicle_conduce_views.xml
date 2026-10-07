@@ -71,16 +71,12 @@
                                 </group>
                                 <group>
                                     <field name="check_radio" readonly="state == 'done'"/>
-                                    <field name="check_cassette_player" readonly="state == 'done'"/>
-                                    <field name="check_cd_changer" readonly="state == 'done'"/>
                                     <field name="check_antenna" readonly="state == 'done'"/>
                                     <field name="check_air_conditioning" readonly="state == 'done'"/>
                                     <field name="check_cup_holder" readonly="state == 'done'"/>
-                                    <field name="check_lighter" readonly="state == 'done'"/>
                                 </group>
                                 <group>
                                     <field name="check_center_console_lid" readonly="state == 'done'"/>
-                                    <field name="check_ashtray" readonly="state == 'done'"/>
                                     <field name="check_headliner" readonly="state == 'done'"/>
                                     <field name="check_seat_upholstery" readonly="state == 'done'"/>
                                     <field name="check_moldings" readonly="state == 'done'"/>
@@ -100,7 +96,12 @@
                                     <field name="check_radiator_cap" readonly="state == 'done'"/>
                                 </group>
                                 <group>
-                                    <field name="check_battery_no_7" readonly="state == 'done'"/>
+                                    <label for="check_battery_no_7" string="Baterías"/>
+                                    <div class="o_row">
+                                        <field name="check_battery_no_7" nolabel="1" readonly="state == 'done'"/>
+                                        <span invisible="not check_battery_no_7">Cantidad</span>
+                                        <field name="battery_quantity" class="oe_inline" nolabel="1" readonly="state == 'done'" invisible="not check_battery_no_7" required="check_battery_no_7" placeholder="Cantidad"/>
+                                    </div>
                                     <field name="check_battery_terminal_cover" readonly="state == 'done'"/>
                                     <field name="check_engine_cover" readonly="state == 'done'"/>
                                     <field name="check_bumper_converter_cover" readonly="state == 'done'"/>
@@ -111,9 +112,12 @@
                                     <field name="check_spare_tire" readonly="state == 'done'"/>
                                     <field name="check_wheel_wrench" readonly="state == 'done'"/>
                                     <field name="check_jack" readonly="state == 'done'"/>
-                                    <field name="check_key_1" readonly="state == 'done'"/>
-                                    <field name="check_key_2" readonly="state == 'done'"/>
-                                    <field name="check_key_3" readonly="state == 'done'"/>
+                                    <label for="check_keys" string="Llaves"/>
+                                    <div class="o_row">
+                                        <field name="check_keys" nolabel="1" readonly="state == 'done'"/>
+                                        <span invisible="not check_keys">Cantidad</span>
+                                        <field name="key_quantity" class="oe_inline" nolabel="1" readonly="state == 'done'" invisible="not check_keys" required="check_keys" placeholder="Cantidad"/>
+                                    </div>
                                     <field name="check_pliers" readonly="state == 'done'"/>
                                     <field name="check_screwdriver" readonly="state == 'done'"/>
                                 </group>
