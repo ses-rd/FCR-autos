@@ -171,7 +171,7 @@
                                 white-space: nowrap;
                             }
                             .fcr-value,
-                            .fcr-red { color: #d93636; }
+                            .fcr-red { color: #111111; }
                             .fcr-intro {
                                 margin: 42px 0 26px;
                                 width: 92%;
@@ -191,7 +191,7 @@
                                 width: 14%;
                                 padding-left: 8px !important;
                             }
-                            .fcr-note-side { color: #d93636; }
+                            .fcr-note-side { color: #111111; }
                             .fcr-main-note { margin-top: 44px; }
                             .fcr-signature {
                                 margin: 58px auto 0;
@@ -307,12 +307,7 @@
                                 <td class="fcr-currency" t-esc="currency_label"/>
                                 <td class="fcr-amount" t-esc="'{:,.2f}'.format(receipt.get('initial_payment') or 0.0)"/>
                                 <td class="fcr-currency-name" t-esc="currency and currency.name or ''"/>
-                                <td class="fcr-note-side">
-                                    De ser en pesos especificar día y tasa de recepción
-                                    <span t-if="receipt.get('exchange_rate')">
-                                        : <span t-esc="receipt.get('exchange_rate')"/>
-                                    </span>
-                                </td>
+                                <td class="fcr-note-side" t-esc="receipt.get('exchange_rate_text')"/>
                             </tr>
                             <tr><td style="height: 28px;"></td></tr>
                             <tr>

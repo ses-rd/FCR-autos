@@ -17,6 +17,11 @@ class AccountMove(models.Model):
         receipt_date = self.invoice_date or fields.Date.context_today(self)
         return f"{receipt_date.day} de {MONTHS_ES[receipt_date.month]} del {receipt_date.year}"
 
+    def _get_sale_receipt_date_text_for(self, receipt_date):
+        self.ensure_one()
+        receipt_date = fields.Date.to_date(receipt_date)
+        return f"{receipt_date.day} de {MONTHS_ES[receipt_date.month]} del {receipt_date.year}"
+
     def _get_sale_receipt_sale_order(self):
         self.ensure_one()
         sale_lines = self.invoice_line_ids.mapped("sale_line_ids")
@@ -84,6 +89,24 @@ class AccountMove(models.Model):
                 return self[field_name]
         return ""
 
+    def _get_sale_receipt_exchange_rate_text(self):
+        self.ensure_one()
+        dop_payments = self.reconciled_payment_ids.filtered(lambda payment: payment.currency_id.name == "DOP")
+        if dop_payments:
+            payment = dop_payments.sorted("date", reverse=True)[0]
+            paid_document_amount = self.amount_total - self.amount_residual
+            if not paid_document_amount:
+                paid_document_amount = self.amount_total
+            rate = payment.amount / paid_document_amount if paid_document_amount else 0.0
+            if rate:
+                return f"Tasa del {self._get_sale_receipt_date_text_for(payment.date)}: {rate:.2f}"
+
+        rate = self._get_sale_receipt_exchange_rate()
+        if rate and self.currency_id.name == "DOP":
+            receipt_date = self.invoice_date or fields.Date.context_today(self)
+            return f"Tasa del {self._get_sale_receipt_date_text_for(receipt_date)}: {rate:.2f}"
+        return ""
+
     def _get_sale_receipt_values(self):
         self.ensure_one()
         partner = self.partner_id
@@ -111,5 +134,6 @@ class AccountMove(models.Model):
             "balance": self.amount_residual,
             "currency": self.currency_id,
             "exchange_rate": self._get_sale_receipt_exchange_rate(),
+            "exchange_rate_text": self._get_sale_receipt_exchange_rate_text(),
             "executive": executive,
         }

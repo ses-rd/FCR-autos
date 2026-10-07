@@ -57,6 +57,11 @@ class SaleOrder(models.Model):
             receipt_date = fields.Date.to_date(self.date_order)
         return f"{receipt_date.day} de {MONTHS_ES[receipt_date.month]} del {receipt_date.year}"
 
+    def _get_sale_receipt_date_text_for(self, receipt_date):
+        self.ensure_one()
+        receipt_date = fields.Date.to_date(receipt_date)
+        return f"{receipt_date.day} de {MONTHS_ES[receipt_date.month]} del {receipt_date.year}"
+
     def _get_sale_receipt_vehicle(self):
         self.ensure_one()
         vehicle = False
@@ -121,6 +126,19 @@ class SaleOrder(models.Model):
             return self.currency_rate
         return ""
 
+    def _get_sale_receipt_exchange_rate_text(self):
+        self.ensure_one()
+        invoices = self.invoice_ids.filtered(lambda move: move.state != "cancel" and move.move_type in ("out_invoice", "out_receipt"))
+        for invoice in invoices:
+            rate_text = invoice._get_sale_receipt_exchange_rate_text()
+            if rate_text:
+                return rate_text
+        rate = self._get_sale_receipt_exchange_rate()
+        if rate and self.currency_id.name == "DOP":
+            receipt_date = self.date_order or fields.Date.context_today(self)
+            return f"Tasa del {self._get_sale_receipt_date_text_for(receipt_date)}: {rate:.2f}"
+        return ""
+
     def _get_sale_receipt_document_label(self):
         self.ensure_one()
         if self.state in ("draft", "sent"):
@@ -150,5 +168,6 @@ class SaleOrder(models.Model):
             "balance": self.amount_total - paid_amount,
             "currency": self.currency_id,
             "exchange_rate": self._get_sale_receipt_exchange_rate(),
+            "exchange_rate_text": self._get_sale_receipt_exchange_rate_text(),
             "executive": self.user_id.name or "",
         }
