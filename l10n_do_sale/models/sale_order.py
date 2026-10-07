@@ -113,6 +113,20 @@ class SaleOrder(models.Model):
         )
         return sum(downpayment_lines.mapped("price_total"))
 
+    def _get_sale_receipt_exchange_rate(self):
+        self.ensure_one()
+        if "manual_currency_exchange_rate" in self._fields and self.manual_currency_exchange_rate:
+            return self.manual_currency_exchange_rate
+        if "currency_rate" in self._fields and self.currency_rate:
+            return self.currency_rate
+        return ""
+
+    def _get_sale_receipt_document_label(self):
+        self.ensure_one()
+        if self.state in ("draft", "sent"):
+            return "COTIZACIÓN"
+        return "RECIBO DE VENTA"
+
     def _get_sale_receipt_values(self):
         self.ensure_one()
         partner = self.partner_id
@@ -120,12 +134,10 @@ class SaleOrder(models.Model):
         phone = partner.phone or ""
         if not phone and "mobile" in partner._fields:
             phone = partner.mobile or ""
-        exchange_rate = ""
-        if "manual_currency_exchange_rate" in self._fields and self.manual_currency_exchange_rate:
-            exchange_rate = self.manual_currency_exchange_rate
 
         return {
             "date_text": self._get_sale_receipt_date_text(),
+            "document_label": self._get_sale_receipt_document_label(),
             "company": self.company_id,
             "client": partner.name or "",
             "vat": partner.vat or "",
@@ -137,6 +149,6 @@ class SaleOrder(models.Model):
             "total_cost": self.amount_total,
             "balance": self.amount_total - paid_amount,
             "currency": self.currency_id,
-            "exchange_rate": exchange_rate,
+            "exchange_rate": self._get_sale_receipt_exchange_rate(),
             "executive": self.user_id.name or "",
         }

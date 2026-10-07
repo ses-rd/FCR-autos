@@ -129,9 +129,17 @@
                             }
                             .fcr-logo-dot { font-size: 22px; }
                             .fcr-date {
-                                margin: 28px 0 34px;
+                                margin: 28px 0 8px;
                                 text-align: right;
                                 color: #d93636;
+                            }
+                            .fcr-document-label {
+                                margin: 0 0 24px;
+                                text-align: center;
+                                color: #d93636;
+                                font-size: 17px;
+                                font-weight: 700;
+                                letter-spacing: 0;
                             }
                             .fcr-client-table,
                             .fcr-vehicle-table,
@@ -215,6 +223,7 @@
                         </div>
 
                         <div class="fcr-date" t-esc="receipt.get('date_text')"/>
+                        <div class="fcr-document-label" t-esc="receipt.get('document_label')"/>
 
                         <table class="fcr-client-table">
                             <tr>
@@ -362,6 +371,12 @@
     <template id="sale_order_portal_receipt_content" inherit_id="sale.sale_order_portal_template">
         <xpath expr="//div[@id='portal_sale_content']" position="replace">
             <div id="portal_sale_content" class="o_portal_html_view position-relative bg-white shadow overflow-hidden" style="min-height: 1120px;">
+                <table
+                    id="sales_order_table"
+                    class="d-none"
+                    t-att-data-order-id="sale_order.id"
+                    t-att-data-token="sale_order.access_token"
+                />
                 <iframe
                     id="fcr_sale_order_html"
                     class="position-relative d-block"

@@ -8,6 +8,10 @@ from .sale_order import MONTHS_ES
 class AccountMove(models.Model):
     _inherit = "account.move"
 
+    def action_print_pdf(self):
+        self.ensure_one()
+        return self.env.ref("account.account_invoices").report_action(self.id, config=False)
+
     def _get_sale_receipt_date_text(self):
         self.ensure_one()
         receipt_date = self.invoice_date or fields.Date.context_today(self)
@@ -68,6 +72,18 @@ class AccountMove(models.Model):
         lines = self.invoice_line_ids.filtered(lambda line: not line.display_type)
         return ", ".join(lines.mapped("name"))
 
+    def _get_sale_receipt_exchange_rate(self):
+        self.ensure_one()
+        sale_order = self._get_sale_receipt_sale_order()
+        if sale_order:
+            rate = sale_order._get_sale_receipt_exchange_rate()
+            if rate:
+                return rate
+        for field_name in ("manual_currency_exchange_rate", "invoice_currency_rate", "currency_rate", "expected_currency_rate"):
+            if field_name in self._fields and self[field_name]:
+                return self[field_name]
+        return ""
+
     def _get_sale_receipt_values(self):
         self.ensure_one()
         partner = self.partner_id
@@ -76,17 +92,13 @@ class AccountMove(models.Model):
         phone = partner.phone or ""
         if not phone and "mobile" in partner._fields:
             phone = partner.mobile or ""
-        exchange_rate = ""
-        if sale_order and "manual_currency_exchange_rate" in sale_order._fields and sale_order.manual_currency_exchange_rate:
-            exchange_rate = sale_order.manual_currency_exchange_rate
-        elif "manual_currency_exchange_rate" in self._fields and self.manual_currency_exchange_rate:
-            exchange_rate = self.manual_currency_exchange_rate
         executive = self.invoice_user_id.name if self.invoice_user_id else ""
         if not executive and "user_id" in self._fields and self.user_id:
             executive = self.user_id.name
 
         return {
             "date_text": self._get_sale_receipt_date_text(),
+            "document_label": "FACTURA",
             "company": self.company_id,
             "client": partner.name or "",
             "vat": partner.vat or "",
@@ -98,6 +110,6 @@ class AccountMove(models.Model):
             "total_cost": self.amount_total,
             "balance": self.amount_residual,
             "currency": self.currency_id,
-            "exchange_rate": exchange_rate,
+            "exchange_rate": self._get_sale_receipt_exchange_rate(),
             "executive": executive,
         }
