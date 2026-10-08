@@ -25,8 +25,16 @@ class IrActionsReport(models.Model):
         sale_report = self.env.ref("sale.action_report_saleorder", raise_if_not_found=False)
         receipt_template = self.env.ref(target_report_name, raise_if_not_found=False)
         if sale_report and receipt_template and sale_report.report_name == target_report_name:
+            _logger.info("FCR receipt report data is already active on sale.action_report_saleorder.")
             return
 
+        _logger.warning(
+            "FCR receipt report data is not active; loading receipt XML. "
+            "sale_report=%s report_name=%s receipt_template=%s",
+            bool(sale_report),
+            sale_report.report_name if sale_report else "",
+            bool(receipt_template),
+        )
         from odoo.tools.convert import convert_file
 
         idref = {}
@@ -40,6 +48,7 @@ class IrActionsReport(models.Model):
                 noupdate=False,
                 kind="data",
             )
+            _logger.info("FCR receipt report XML loaded using env convert_file signature.")
         except TypeError:
             convert_file(
                 self.env.cr,
@@ -50,3 +59,13 @@ class IrActionsReport(models.Model):
                 noupdate=False,
                 kind="data",
             )
+            _logger.info("FCR receipt report XML loaded using cr convert_file signature.")
+
+        sale_report = self.env.ref("sale.action_report_saleorder", raise_if_not_found=False)
+        receipt_template = self.env.ref(target_report_name, raise_if_not_found=False)
+        _logger.info(
+            "FCR receipt report bootstrap result: sale_report=%s report_name=%s receipt_template=%s",
+            bool(sale_report),
+            sale_report.report_name if sale_report else "",
+            bool(receipt_template),
+        )
