@@ -4,6 +4,7 @@
     'summary': 'Adds a company seal field to quotations',
     'category': 'Sales',
     'author': 'SEGU',
+    'license': 'LGPL-3',
     'depends': ['sale'],
     'data': [
         'views/res_company_views.xml',
