@@ -1,0 +1,387 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="paperformat_sale_separation_receipt" model="report.paperformat">
+        <field name="name">FCR Receipt Letter</field>
+        <field name="default" eval="False"/>
+        <field name="format">Letter</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">7</field>
+        <field name="margin_bottom">7</field>
+        <field name="margin_left">7</field>
+        <field name="margin_right">7</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">96</field>
+    </record>
+
+    <record id="sale.action_report_saleorder" model="ir.actions.report">
+        <field name="name">Recibo de Venta / Separación</field>
+        <field name="report_name">fcr_invoice_report.report_sale_separation_receipt</field>
+        <field name="report_file">fcr_invoice_report.report_sale_separation_receipt</field>
+        <field name="print_report_name">'Recibo Venta Separacion - %s' % (object.name)</field>
+        <field name="paperformat_id" ref="fcr_invoice_report.paperformat_sale_separation_receipt"/>
+    </record>
+
+    <record id="account.account_invoices" model="ir.actions.report">
+        <field name="name">Recibo de Venta / Separación</field>
+        <field name="report_name">fcr_invoice_report.report_sale_separation_receipt</field>
+        <field name="report_file">fcr_invoice_report.report_sale_separation_receipt</field>
+        <field name="print_report_name">'Recibo Venta Separacion - %s' % (object.name)</field>
+        <field name="paperformat_id" ref="fcr_invoice_report.paperformat_sale_separation_receipt"/>
+    </record>
+
+    <record id="account.account_invoices_without_payment" model="ir.actions.report">
+        <field name="name">Recibo de Venta / Separación</field>
+        <field name="report_name">fcr_invoice_report.report_sale_separation_receipt</field>
+        <field name="report_file">fcr_invoice_report.report_sale_separation_receipt</field>
+        <field name="print_report_name">'Recibo Venta Separacion - %s' % (object.name)</field>
+        <field name="paperformat_id" ref="fcr_invoice_report.paperformat_sale_separation_receipt"/>
+    </record>
+
+    <record id="action_report_sale_separation_receipt" model="ir.actions.report">
+        <field name="name">Recibo de Venta / Separación</field>
+        <field name="model">sale.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">fcr_invoice_report.report_sale_separation_receipt</field>
+        <field name="report_file">fcr_invoice_report.report_sale_separation_receipt</field>
+        <field name="print_report_name">'Recibo Venta Separacion - %s' % (object.name)</field>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="fcr_invoice_report.paperformat_sale_separation_receipt"/>
+    </record>
+
+    <record id="action_report_saleorder_standard" model="ir.actions.report">
+        <field name="name">Cotización / Pedido estándar</field>
+        <field name="model">sale.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sale.report_saleorder</field>
+        <field name="report_file">sale.report_saleorder</field>
+        <field name="print_report_name">(object.state in ('draft', 'sent') and 'Quotation - %s' % (object.name)) or 'Order - %s' % (object.name)</field>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_report_invoice_standard" model="ir.actions.report">
+        <field name="name">Factura estándar con pagos</field>
+        <field name="model">account.move</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">account.report_invoice_with_payments</field>
+        <field name="report_file">account.report_invoice_with_payments</field>
+        <field name="print_report_name">(object._get_report_base_filename())</field>
+        <field name="binding_model_id" ref="account.model_account_move"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_report_invoice_without_payment_standard" model="ir.actions.report">
+        <field name="name">Factura estándar sin pagos</field>
+        <field name="model">account.move</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">account.report_invoice</field>
+        <field name="report_file">account.report_invoice</field>
+        <field name="print_report_name">(object._get_report_base_filename())</field>
+        <field name="binding_model_id" ref="account.model_account_move"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_sale_separation_receipt">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-set="receipt" t-value="doc._get_sale_receipt_values()"/>
+                <t t-set="company" t-value="receipt.get('company')"/>
+                <t t-set="vehicle" t-value="receipt.get('vehicle') or {}"/>
+                <t t-set="has_vehicle" t-value="vehicle.get('has_vehicle')"/>
+                <t t-set="currency" t-value="receipt.get('currency')"/>
+                <t t-set="currency_label" t-value="currency and (currency.symbol or currency.name) or ''"/>
+                <div class="article" t-att-data-oe-model="doc._name" t-att-data-oe-id="doc.id">
+                    <div class="page fcr-receipt-page">
+                        <style>
+                            body { background: #ffffff; }
+                            .fcr-receipt-page {
+                                background: #ffffff;
+                                color: #111111;
+                                border: 1px solid #7f7f7f;
+                                font-family: Arial, Helvetica, sans-serif;
+                                font-size: 14px;
+                                line-height: 1.35;
+                                min-height: 980px;
+                                padding: 44px 92px 42px;
+                            }
+                            .fcr-header {
+                                text-align: center;
+                                color: #6f6f6f;
+                                line-height: 1.22;
+                            }
+                            .fcr-logo {
+                                max-height: 58px;
+                                max-width: 360px;
+                                background: #ffffff;
+                                padding: 2px 6px;
+                            }
+                            .fcr-logo-text {
+                                display: inline-block;
+                                background: #ffffff;
+                                color: #777777;
+                                font-size: 36px;
+                                font-weight: 700;
+                                letter-spacing: 0;
+                                padding: 0 12px;
+                                line-height: 1.1;
+                            }
+                            .fcr-logo-dot { font-size: 22px; }
+                            .fcr-date {
+                                margin: 28px 0 8px;
+                                text-align: right;
+                                color: #d93636;
+                            }
+                            .fcr-document-label {
+                                margin: 0 0 24px;
+                                text-align: center;
+                                color: #d93636;
+                                font-size: 17px;
+                                font-weight: 700;
+                                letter-spacing: 0;
+                            }
+                            .fcr-client-table,
+                            .fcr-vehicle-table,
+                            .fcr-amount-table {
+                                width: 100%;
+                                border-collapse: separate !important;
+                                border-spacing: 0 !important;
+                                border: 0 !important;
+                            }
+                            .fcr-receipt-page table,
+                            .fcr-receipt-page thead,
+                            .fcr-receipt-page tbody,
+                            .fcr-receipt-page tr,
+                            .fcr-receipt-page th,
+                            .fcr-receipt-page td {
+                                border: 0 !important;
+                                outline: 0 !important;
+                                box-shadow: none !important;
+                            }
+                            .fcr-client-table td,
+                            .fcr-vehicle-table td,
+                            .fcr-amount-table td {
+                                padding: 1px 0;
+                                vertical-align: top;
+                            }
+                            .fcr-label {
+                                color: #111111;
+                                font-weight: 700;
+                                white-space: nowrap;
+                            }
+                            .fcr-value,
+                            .fcr-red { color: #111111; }
+                            .fcr-intro {
+                                margin: 42px 0 26px;
+                                width: 92%;
+                            }
+                            .fcr-section { margin-top: 26px; }
+                            .fcr-amount-table { margin-top: 38px; }
+                            .fcr-amount-label { width: 32%; }
+                            .fcr-currency {
+                                width: 10%;
+                                text-align: left;
+                            }
+                            .fcr-amount {
+                                width: 18%;
+                                text-align: right;
+                            }
+                            .fcr-currency-name {
+                                width: 14%;
+                                padding-left: 8px !important;
+                            }
+                            .fcr-note-side { color: #111111; }
+                            .fcr-main-note { margin-top: 44px; }
+                            .fcr-signature {
+                                margin: 58px auto 0;
+                                width: 320px;
+                                text-align: center;
+                            }
+                            .fcr-signature-line {
+                                border-top: 1px solid #111111;
+                                padding-top: 6px;
+                            }
+                            .fcr-footer {
+                                margin-top: 36px;
+                                text-align: center;
+                                color: #6f6f6f;
+                            }
+                        </style>
+
+                        <div class="fcr-header">
+                            <div>
+                                <img t-if="company and company.logo" class="fcr-logo" t-att-src="image_data_uri(company.logo)" alt="FCR Autos"/>
+                                <span t-else="" class="fcr-logo-text">FCR AUTOS<span class="fcr-logo-dot">.COM</span></span>
+                            </div>
+                            <div>Calle Paseo de los Profesores no. 14, Mirador Sur.</div>
+                            <div>Santo Domingo, D.N.</div>
+                            <div>Teléfono: 809.793.7676</div>
+                            <div>E-mail: <span style="color:#3157a4;">info@fcrautos.com</span></div>
+                            <div>FCRAUTOS.com</div>
+                            <div>RNC: <span t-esc="company.vat if company and company.vat else '1-31-53719-7'"/></div>
+                        </div>
+
+                        <div class="fcr-date" t-esc="receipt.get('date_text')"/>
+                        <div class="fcr-document-label" t-esc="receipt.get('document_label')"/>
+
+                        <table class="fcr-client-table">
+                            <tr>
+                                <td class="fcr-label" style="width: 18%;">Cliente:</td>
+                                <td class="fcr-value" t-esc="receipt.get('client')"/>
+                            </tr>
+                            <tr>
+                                <td class="fcr-label">RNC/Cédula:</td>
+                                <td class="fcr-value" t-esc="receipt.get('vat')"/>
+                            </tr>
+                            <tr>
+                                <td class="fcr-label">Teléfono:</td>
+                                <td class="fcr-value" t-esc="receipt.get('phone')"/>
+                            </tr>
+                            <tr>
+                                <td class="fcr-label">E-mail:</td>
+                                <td class="fcr-value" t-esc="receipt.get('email')"/>
+                            </tr>
+                        </table>
+
+                        <p class="fcr-intro" t-if="has_vehicle">
+                            Por medio de la presente hacemos contar que hemos recibido de la persona descrita más
+                            arriba los siguientes pagos, para completar a futuro con el pago total del vehículo descrito
+                            a continuación:
+                        </p>
+                        <p class="fcr-intro" t-else="">
+                            Por medio de la presente hacemos contar que hemos recibido de la persona descrita más
+                            arriba los siguientes pagos, para completar a futuro con el pago total de la operación
+                            descrita a continuación:
+                        </p>
+
+                        <table t-if="has_vehicle" class="fcr-vehicle-table">
+                            <tr>
+                                <td>
+                                    <span class="fcr-label">Marca:</span>
+                                    <span class="fcr-red" t-esc="vehicle.get('brand')"/>
+                                </td>
+                                <td>
+                                    <span class="fcr-label">Modelo:</span>
+                                    <span class="fcr-red" t-esc="vehicle.get('model')"/>
+                                </td>
+                                <td>
+                                    <span class="fcr-label">Año:</span>
+                                    <span class="fcr-red" t-esc="vehicle.get('year')"/>
+                                </td>
+                                <td>
+                                    <span class="fcr-label">Placa:</span>
+                                    <span class="fcr-red" t-esc="vehicle.get('license_plate')"/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="2">
+                                    <span class="fcr-label">Chasis:</span>
+                                    <span class="fcr-red" t-esc="vehicle.get('chassis')"/>
+                                </td>
+                                <td>
+                                    <span class="fcr-label">Kms-Millas:</span>
+                                    <span class="fcr-red" t-esc="vehicle.get('mileage')"/>
+                                </td>
+                                <td>
+                                    <span class="fcr-label">Color:</span>
+                                    <span class="fcr-red" t-esc="vehicle.get('color')"/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="4">
+                                    <span class="fcr-label">Tipo:</span>
+                                    <span class="fcr-red" t-esc="vehicle.get('type')"/>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <div t-else="" class="fcr-section">
+                            <span class="fcr-label">Descripción:</span>
+                            <span class="fcr-red" t-esc="receipt.get('items_text')"/>
+                        </div>
+
+                        <table class="fcr-amount-table">
+                            <tr>
+                                <td class="fcr-amount-label">Pago inicial:</td>
+                                <td class="fcr-currency" t-esc="currency_label"/>
+                                <td class="fcr-amount" t-esc="'{:,.2f}'.format(receipt.get('initial_payment') or 0.0)"/>
+                                <td class="fcr-currency-name" t-esc="currency and currency.name or ''"/>
+                                <td class="fcr-note-side" t-esc="receipt.get('exchange_rate_text')"/>
+                            </tr>
+                            <tr><td style="height: 28px;"></td></tr>
+                            <tr>
+                                <td class="fcr-amount-label">
+                                    <span t-if="has_vehicle">Costo total del vehículo:</span>
+                                    <span t-else="">Costo total:</span>
+                                    <div t-if="has_vehicle">(Incluye traspaso)</div>
+                                </td>
+                                <td class="fcr-currency" t-esc="currency_label"/>
+                                <td class="fcr-amount" t-esc="'{:,.2f}'.format(receipt.get('total_cost') or 0.0)"/>
+                                <td class="fcr-currency-name" t-esc="currency and currency.name or ''"/>
+                                <td></td>
+                            </tr>
+                            <tr><td style="height: 28px;"></td></tr>
+                            <tr>
+                                <td class="fcr-amount-label">
+                                    Pendiente a pagar:
+                                    <div t-if="has_vehicle">(Carta BANCO)</div>
+                                </td>
+                                <td class="fcr-currency" t-esc="currency_label"/>
+                                <td class="fcr-amount" t-esc="'{:,.2f}'.format(receipt.get('balance') or 0.0)"/>
+                                <td class="fcr-currency-name" t-esc="currency and currency.name or ''"/>
+                                <td></td>
+                            </tr>
+                        </table>
+
+                        <p class="fcr-main-note" t-if="has_vehicle">
+                            Nota: La separación del vehículo descrito en la parte de arriba conlleva un mínimo
+                            de un 10%. De no concluir con el pago total en 7 días laborables a partir de la fecha del
+                            documento, se procede con la devolución del mismo, reteniéndole un 20% de la separación o
+                            inicial.
+                        </p>
+                        <p class="fcr-main-note" t-else="">
+                            Nota: La separación de la operación descrita en la parte de arriba conlleva un mínimo
+                            de un 10%. De no concluir con el pago total en 7 días laborables a partir de la fecha del
+                            documento, se procede con la devolución del mismo, reteniéndole un 20% de la separación o
+                            inicial.
+                        </p>
+
+                        <div class="fcr-signature">
+                            <div class="fcr-signature-line">
+                                <div class="fcr-red" t-esc="receipt.get('executive') or 'NOMBRE DE EJECUTIVO DE VENTAS'"/>
+                                <div>FCR AUTOS, SRL</div>
+                            </div>
+                        </div>
+
+                        <div class="fcr-footer">
+                            Compra venta de vehículos en óptimo estado. Únicos con el pago en 24 Horas.
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <template id="sale_order_portal_receipt_content" inherit_id="sale.sale_order_portal_template">
+        <xpath expr="//div[@id='portal_sale_content']" position="replace">
+            <div id="portal_sale_content" class="o_portal_html_view position-relative bg-white shadow overflow-hidden" style="min-height: 1120px;">
+                <table
+                    id="sales_order_table"
+                    class="d-none"
+                    t-att-data-order-id="sale_order.id"
+                    t-att-data-token="sale_order.access_token"
+                />
+                <iframe
+                    id="fcr_sale_order_html"
+                    class="position-relative d-block"
+                    width="100%"
+                    height="1120"
+                    frameborder="0"
+                    scrolling="no"
+                    t-att-src="sale_order.get_portal_url(report_type='html')"
+                />
+            </div>
+        </xpath>
+    </template>
+</odoo>
