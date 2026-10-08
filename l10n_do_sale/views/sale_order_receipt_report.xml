@@ -335,7 +335,7 @@
                         </table>
 
                         <p class="fcr-main-note" t-if="has_vehicle">
-                            Nota: Nota: La separación del vehículo descrito en la parte de arriba conlleva un mínimo
+                            Nota: La separación del vehículo descrito en la parte de arriba conlleva un mínimo
                             de un 10%. De no concluir con el pago total en 7 días laborables a partir de la fecha del
                             documento, se procede con la devolución del mismo, reteniéndole un 20% de la separación o
                             inicial.
