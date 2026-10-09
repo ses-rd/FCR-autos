@@ -12,6 +12,13 @@ class AccountMove(models.Model):
         self.ensure_one()
         return self.env.ref("account.account_invoices").report_action(self.id, config=False)
 
+    def action_print_sale_separation_receipt(self):
+        self.ensure_one()
+        return self.env.ref("fcr_invoice_report.action_report_invoice_separation_receipt").report_action(
+            self,
+            config=False,
+        )
+
     def _get_sale_receipt_date_text(self):
         self.ensure_one()
         receipt_date = self.invoice_date or fields.Date.context_today(self)

@@ -25,6 +25,17 @@
         <field name="paperformat_id" ref="fcr_invoice_report.paperformat_sale_separation_receipt"/>
     </record>
 
+    <record id="action_report_invoice_separation_receipt" model="ir.actions.report">
+        <field name="name">Recibo de Venta / SeparaciÃ³n</field>
+        <field name="model">account.move</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">fcr_invoice_report.report_sale_separation_receipt</field>
+        <field name="report_file">fcr_invoice_report.report_sale_separation_receipt</field>
+        <field name="print_report_name">'Recibo Venta Separacion - %s' % (object.name)</field>
+        <field name="binding_model_id" eval="False"/>
+        <field name="paperformat_id" ref="fcr_invoice_report.paperformat_sale_separation_receipt"/>
+    </record>
+
     <record id="sale_order_form_fcr_receipt_button" model="ir.ui.view">
         <field name="name">sale.order.form.fcr.receipt.button</field>
         <field name="model">sale.order</field>
