@@ -343,4 +343,8 @@
             </div>
         </xpath>
     </template>
+
+    <record id="sale_order_portal_receipt_content" model="ir.ui.view">
+        <field name="active" eval="False"/>
+    </record>
 </odoo>
