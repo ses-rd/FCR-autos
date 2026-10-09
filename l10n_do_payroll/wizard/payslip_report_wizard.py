@@ -24,13 +24,13 @@ class PayslipReportWizard(models.TransientModel):
     _description = u"Wizard para los reportes de nómina"
 
     company_id = fields.Many2one('res.company', string=u"Compañía", default=lambda self: self.env.user.company_id)
-    date_from = fields.Date("Desde", required=1)
-    date_to = fields.Date("Hasta", required=1)
+    date_from = fields.Date("Desde", required=True)
+    date_to = fields.Date("Hasta", required=True)
     type = fields.Selection([('one', 'Individual'),
                              ('department', 'Departamento'),
                              ('by_batch', 'Procesamiento'),
                              ('global', 'Global'), ('tss_news', 'Novedades TSS')],
-                            string="Tipo", default='by_batch', required=1,
+                            string="Tipo", default='by_batch', required=True,
                             help="Elija el tipo de reporte")
     employee_id = fields.Many2one('hr.employee', string='Empleado')
     department_id = fields.Many2one('hr.department', string='Departamento')
