@@ -6,4 +6,3 @@ from . import product_template
 from . import sale_order_receipt
 from . import account_move_receipt
 from . import account_move_send
-from . import report_bootstrap
