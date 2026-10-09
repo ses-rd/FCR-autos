@@ -228,6 +228,13 @@ class SaleOrder(models.Model):
             return "COTIZACIÓN"
         return "RECIBO DE VENTA"
 
+    def action_print_sale_separation_receipt(self):
+        self.ensure_one()
+        return self.env.ref("fcr_invoice_report.action_report_sale_separation_receipt").report_action(
+            self,
+            config=False,
+        )
+
     def _get_sale_receipt_values(self):
         self.ensure_one()
         partner = self.partner_id
