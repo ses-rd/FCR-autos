@@ -290,13 +290,10 @@ class FcrVehicleConduce(models.Model):
     snapshot_check_screwdriver = fields.Boolean(string='Snapshot check_screwdriver', readonly=True, copy=False)
 
 
-    _sql_constraints = [
-        (
-            'unique_picking_conduce_type',
-            'unique(picking_id, conduce_type)',
-            'Ya existe un conduce de este tipo para esta transferencia.',
-        ),
-    ]
+    _unique_picking_conduce_type = models.Constraint(
+        'unique(picking_id, conduce_type)',
+        'Ya existe un conduce de este tipo para esta transferencia.',
+    )
 
     @api.depends('conduce_type', 'picking_id.name')
     def _compute_name(self):

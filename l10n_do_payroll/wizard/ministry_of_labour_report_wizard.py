@@ -14,12 +14,12 @@ class MinistryOfLabourReportWizard(models.TransientModel):
     _description = u"Wizard para los reportes del Ministerio del Trabajo"
 
     company_id = fields.Many2one('res.company', string=u"Compañía", default=lambda self: self.env.user.company_id)
-    date_from = fields.Date("Desde", required=1)
-    date_to = fields.Date("Hasta", required=1)
+    date_from = fields.Date("Desde", required=True)
+    date_to = fields.Date("Hasta", required=True)
     template = fields.Selection([('dgt2', 'DGT2'),
                                  ('dgt34', 'DGT3-DGT4'),
                                  ('dgt5', 'DGT5'),
-                                 ('dgt11', 'DGT11')], string="Plantilla", required=1, help="Elija el tipo de plantilla")
+                                 ('dgt11', 'DGT11')], string="Plantilla", required=True, help="Elija el tipo de plantilla")
 
     ministry_of_labour_report_xlsx_file_name = fields.Char()
     ministry_of_labour_report_xlsx_binary = fields.Binary(string="Reporte de Ministerio de Trabajo XLS")

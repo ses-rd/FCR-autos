@@ -5,7 +5,7 @@
     'author': 'SEGU',
     'license': 'LGPL-3',
     'category': 'Localization/Payroll',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.1.0',
     'depends': [
         'base',
         'hr',
