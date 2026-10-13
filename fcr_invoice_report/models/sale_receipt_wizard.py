@@ -41,8 +41,13 @@ class FcrSaleReceiptWizard(models.TransientModel):
             if sale_order_id:
                 vals["sale_order_id"] = sale_order_id
                 vals["move_id"] = False
-            elif vals.get("move_id") and not self.env["account.move"].browse(vals["move_id"]).exists():
-                vals["move_id"] = False
+            elif vals.get("move_id"):
+                move_id = vals["move_id"]
+                if not self.env["account.move"].browse(move_id).exists():
+                    sale_order = self.env["sale.order"].browse(move_id).exists()
+                    if sale_order:
+                        vals["sale_order_id"] = sale_order.id
+                    vals["move_id"] = False
         return super().create(vals_list)
 
     def _get_receipt_document(self):
@@ -55,6 +60,10 @@ class FcrSaleReceiptWizard(models.TransientModel):
                 return sale_order
         if self.sale_order_id.exists():
             return self.sale_order_id
+        if self.move_id and not self.move_id.exists():
+            sale_order = self.env["sale.order"].browse(self.move_id.id).exists()
+            if sale_order:
+                return sale_order
         if active_model == "account.move" and active_id:
             move = self.env["account.move"].browse(active_id).exists()
             if move:
@@ -79,8 +88,15 @@ class FcrSaleReceiptWizard(models.TransientModel):
             result["sale_order_id"] = default_sale_order_id
             result["move_id"] = False
         elif default_move_id:
-            result["move_id"] = default_move_id
-            result["sale_order_id"] = False
+            move = self.env["account.move"].browse(default_move_id).exists()
+            if move:
+                result["move_id"] = move.id
+                result["sale_order_id"] = False
+            else:
+                sale_order = self.env["sale.order"].browse(default_move_id).exists()
+                if sale_order:
+                    result["sale_order_id"] = sale_order.id
+                result["move_id"] = False
 
         sale_order = self.env["sale.order"].browse(result.get("sale_order_id")).exists()
         move = self.env["account.move"].browse(result.get("move_id")).exists()
