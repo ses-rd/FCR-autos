@@ -250,7 +250,10 @@ class SaleOrder(models.Model):
             "view_mode": "form",
             "target": "new",
             "context": {
+                "active_model": "sale.order",
+                "active_id": self.id,
                 "default_sale_order_id": self.id,
+                "default_move_id": False,
             },
         }
 

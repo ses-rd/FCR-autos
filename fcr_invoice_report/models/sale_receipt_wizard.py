@@ -34,6 +34,11 @@ class FcrSaleReceiptWizard(models.TransientModel):
         result = super().default_get(fields_list)
         default_move_id = self.env.context.get("default_move_id")
         default_sale_order_id = self.env.context.get("default_sale_order_id")
+        active_model = self.env.context.get("active_model")
+        active_id = self.env.context.get("active_id")
+
+        if active_model == "sale.order" and active_id and not default_sale_order_id:
+            default_sale_order_id = active_id
 
         if default_sale_order_id:
             result["sale_order_id"] = default_sale_order_id
@@ -66,7 +71,7 @@ class FcrSaleReceiptWizard(models.TransientModel):
             "fcr_receipt_date": self.receipt_date,
             "fcr_receipt_exchange_rate": self.exchange_rate,
         })
-        if self.move_id:
+        if document._name == "account.move":
             report = self.env.ref("fcr_invoice_report.action_report_invoice_separation_receipt")
         else:
             report = self.env.ref("fcr_invoice_report.action_report_sale_separation_receipt")
