@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from odoo import api, fields, models
+from odoo import api, fields, models, _
+from odoo.exceptions import UserError
 
 
 MONTHS_ES = {
@@ -240,6 +241,8 @@ class SaleOrder(models.Model):
 
     def action_print_sale_separation_receipt(self):
         self.ensure_one()
+        if self.state != "sale":
+            raise UserError(_("El Recibo FCR solo esta disponible en ordenes de venta confirmadas."))
         return {
             "type": "ir.actions.act_window",
             "name": "Recibo FCR",

@@ -36,7 +36,7 @@
                     type="object"
                     string="Recibo FCR"
                     class="btn-secondary"
-                    invisible="state in ('draft', 'sent')"
+                    invisible="state != 'sale'"
                 />
             </xpath>
         </field>
