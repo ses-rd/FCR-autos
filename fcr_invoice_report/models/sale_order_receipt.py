@@ -224,8 +224,6 @@ class SaleOrder(models.Model):
 
     def _get_sale_receipt_document_label(self):
         self.ensure_one()
-        if self.state in ("draft", "sent"):
-            return "COTIZACIÓN"
         return "RECIBO DE VENTA"
 
     def action_print_sale_separation_receipt(self):

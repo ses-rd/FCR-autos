@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_fcr_sale_receipt_wizard_form" model="ir.ui.view">
+        <field name="name">fcr.sale.receipt.wizard.form</field>
+        <field name="model">fcr.sale.receipt.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Recibo FCR">
+                <group>
+                    <field name="move_id" invisible="1"/>
+                    <field name="currency_id" invisible="1"/>
+                    <field name="amount"/>
+                    <field name="receipt_date"/>
+                    <field name="exchange_rate"/>
+                </group>
+                <footer>
+                    <button name="action_save_and_print" type="object" string="Guardar e imprimir" class="btn-primary"/>
+                    <button string="Descartar" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>
