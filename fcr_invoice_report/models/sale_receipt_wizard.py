@@ -21,22 +21,30 @@ class FcrSaleReceiptWizard(models.TransientModel):
     def _compute_currency_id(self):
         for wizard in self:
             wizard.currency_id = (
-                wizard.move_id.currency_id
-                or wizard.sale_order_id.currency_id
+                wizard.sale_order_id.currency_id
+                or wizard.move_id.currency_id
                 or self.env.company.currency_id
             )
 
     def _get_receipt_document(self):
         self.ensure_one()
-        return self.move_id or self.sale_order_id
+        return self.sale_order_id or self.move_id
 
     def default_get(self, fields_list):
         result = super().default_get(fields_list)
-        move = self.env["account.move"].browse(result.get("move_id") or self.env.context.get("default_move_id"))
-        sale_order = self.env["sale.order"].browse(
-            result.get("sale_order_id") or self.env.context.get("default_sale_order_id")
-        )
-        document = move or sale_order
+        default_move_id = self.env.context.get("default_move_id")
+        default_sale_order_id = self.env.context.get("default_sale_order_id")
+
+        if default_sale_order_id:
+            result["sale_order_id"] = default_sale_order_id
+            result["move_id"] = False
+        elif default_move_id:
+            result["move_id"] = default_move_id
+            result["sale_order_id"] = False
+
+        sale_order = self.env["sale.order"].browse(result.get("sale_order_id"))
+        move = self.env["account.move"].browse(result.get("move_id"))
+        document = sale_order or move
         if document:
             residual = getattr(document, "amount_residual", 0.0)
             result.setdefault("amount", document.fcr_receipt_amount or residual or document.amount_total)
@@ -62,4 +70,6 @@ class FcrSaleReceiptWizard(models.TransientModel):
             report = self.env.ref("fcr_invoice_report.action_report_invoice_separation_receipt")
         else:
             report = self.env.ref("fcr_invoice_report.action_report_sale_separation_receipt")
-        return report.report_action(document, config=False)
+        action = report.with_context(close_on_report_download=True).report_action(document, config=False)
+        action["close_on_report_download"] = True
+        return action
