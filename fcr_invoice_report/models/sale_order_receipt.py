@@ -200,13 +200,6 @@ class SaleOrder(models.Model):
         self.ensure_one()
         if self.fcr_receipt_amount:
             return self.fcr_receipt_amount
-        sale_invoices = self.invoice_ids.filtered(
-            lambda move: move.state != "cancel" and move.move_type in ("out_invoice", "out_receipt")
-        )
-        paid_amount = sum(sale_invoices.mapped(lambda move: move.amount_total - move.amount_residual))
-        if paid_amount:
-            return paid_amount
-
         downpayment_lines = self.order_line.filtered(
             lambda line: not line.display_type and "is_downpayment" in line._fields and line.is_downpayment
         )
@@ -224,11 +217,6 @@ class SaleOrder(models.Model):
 
     def _get_sale_receipt_exchange_rate_text(self):
         self.ensure_one()
-        invoices = self.invoice_ids.filtered(lambda move: move.state != "cancel" and move.move_type in ("out_invoice", "out_receipt"))
-        for invoice in invoices:
-            rate_text = invoice._get_sale_receipt_exchange_rate_text()
-            if rate_text:
-                return rate_text
         rate = self._get_sale_receipt_exchange_rate()
         if rate:
             receipt_date = self.fcr_receipt_date or self.date_order or fields.Date.context_today(self)
