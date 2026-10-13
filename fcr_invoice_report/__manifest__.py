@@ -6,6 +6,7 @@
     "summary": "Custom invoice",
     "depends": ["l10n_do_ecf", "sale_management"],
     "data": [
+        "security/ir.model.access.csv",
         "views/report_invoice.xml",
         "views/product_template_view.xml",
         "views/account_move_views.xml",

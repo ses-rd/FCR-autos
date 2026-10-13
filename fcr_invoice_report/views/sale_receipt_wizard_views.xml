@@ -7,6 +7,7 @@
             <form string="Recibo FCR">
                 <group>
                     <field name="move_id" invisible="1"/>
+                    <field name="sale_order_id" invisible="1"/>
                     <field name="currency_id" invisible="1"/>
                     <field name="amount"/>
                     <field name="receipt_date"/>

@@ -21,6 +21,14 @@ MONTHS_ES = {
 class SaleOrder(models.Model):
     _inherit = "sale.order"
 
+    fcr_receipt_amount = fields.Monetary(
+        string="Importe de recibo FCR",
+        currency_field="currency_id",
+        copy=False,
+    )
+    fcr_receipt_date = fields.Date(string="Fecha de recibo FCR", copy=False)
+    fcr_receipt_exchange_rate = fields.Float(string="Tasa de recibo FCR", copy=False)
+
     def _get_order_lines_to_report(self):
         lines = super()._get_order_lines_to_report()
         return lines.filtered(
@@ -135,9 +143,9 @@ class SaleOrder(models.Model):
 
     def _get_sale_receipt_date_text(self):
         self.ensure_one()
-        receipt_date = fields.Date.context_today(self)
+        receipt_date = self.fcr_receipt_date or fields.Date.context_today(self)
         if self.date_order:
-            receipt_date = fields.Date.to_date(self.date_order)
+            receipt_date = self.fcr_receipt_date or fields.Date.to_date(self.date_order)
         return f"{receipt_date.day} de {MONTHS_ES[receipt_date.month]} del {receipt_date.year}"
 
     def _get_sale_receipt_date_text_for(self, receipt_date):
@@ -189,6 +197,8 @@ class SaleOrder(models.Model):
 
     def _get_sale_receipt_paid_amount(self):
         self.ensure_one()
+        if self.fcr_receipt_amount:
+            return self.fcr_receipt_amount
         sale_invoices = self.invoice_ids.filtered(
             lambda move: move.state != "cancel" and move.move_type in ("out_invoice", "out_receipt")
         )
@@ -203,6 +213,8 @@ class SaleOrder(models.Model):
 
     def _get_sale_receipt_exchange_rate(self):
         self.ensure_one()
+        if self.fcr_receipt_exchange_rate:
+            return self.fcr_receipt_exchange_rate
         if "manual_currency_exchange_rate" in self._fields and self.manual_currency_exchange_rate:
             return self.manual_currency_exchange_rate
         if "currency_rate" in self._fields and self.currency_rate:
@@ -218,7 +230,7 @@ class SaleOrder(models.Model):
                 return rate_text
         rate = self._get_sale_receipt_exchange_rate()
         if rate:
-            receipt_date = self.date_order or fields.Date.context_today(self)
+            receipt_date = self.fcr_receipt_date or self.date_order or fields.Date.context_today(self)
             return f"Tasa del {self._get_sale_receipt_date_text_for(receipt_date)}: {rate:.2f}"
         return ""
 
@@ -228,10 +240,16 @@ class SaleOrder(models.Model):
 
     def action_print_sale_separation_receipt(self):
         self.ensure_one()
-        return self.env.ref("fcr_sale_management.action_report_sale_separation_receipt").report_action(
-            self,
-            config=False,
-        )
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Recibo FCR",
+            "res_model": "fcr.sale.receipt.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_sale_order_id": self.id,
+            },
+        }
 
     def _get_sale_receipt_values(self):
         self.ensure_one()

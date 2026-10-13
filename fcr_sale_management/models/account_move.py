@@ -14,7 +14,13 @@ class AccountMove(models.Model):
 
     def _get_sale_receipt_date_text(self):
         self.ensure_one()
-        receipt_date = self.fcr_receipt_date or self.invoice_date or fields.Date.context_today(self)
+        sale_order = self._get_sale_receipt_sale_order()
+        receipt_date = (
+            self.fcr_receipt_date
+            or (sale_order.fcr_receipt_date if sale_order else False)
+            or self.invoice_date
+            or fields.Date.context_today(self)
+        )
         return f"{receipt_date.day} de {MONTHS_ES[receipt_date.month]} del {receipt_date.year}"
 
     def _get_sale_receipt_date_text_for(self, receipt_date):
@@ -98,6 +104,8 @@ class AccountMove(models.Model):
         sale_order = self._get_sale_receipt_sale_order()
         if self.fcr_receipt_exchange_rate:
             return self.fcr_receipt_exchange_rate
+        if sale_order and sale_order.fcr_receipt_exchange_rate:
+            return sale_order.fcr_receipt_exchange_rate
         if sale_order:
             rate = sale_order._get_sale_receipt_exchange_rate()
             if rate:
@@ -121,14 +129,23 @@ class AccountMove(models.Model):
 
         rate = self._get_sale_receipt_exchange_rate()
         if rate:
-            receipt_date = self.fcr_receipt_date or self.invoice_date or fields.Date.context_today(self)
+            sale_order = self._get_sale_receipt_sale_order()
+            receipt_date = (
+                self.fcr_receipt_date
+                or (sale_order.fcr_receipt_date if sale_order else False)
+                or self.invoice_date
+                or fields.Date.context_today(self)
+            )
             return f"Tasa del {self._get_sale_receipt_date_text_for(receipt_date)}: {rate:.2f}"
         return ""
 
     def _get_sale_receipt_initial_payment_amount(self):
         self.ensure_one()
+        sale_order = self._get_sale_receipt_sale_order()
         if self.fcr_receipt_amount:
             return self.fcr_receipt_amount
+        if sale_order and sale_order.fcr_receipt_amount:
+            return sale_order.fcr_receipt_amount
         return self.amount_total - self.amount_residual
 
     def _get_sale_receipt_values(self):
