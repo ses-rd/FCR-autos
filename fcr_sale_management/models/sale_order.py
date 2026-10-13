@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from odoo import api, fields, models
+from odoo import api, fields, models, _
+from odoo.exceptions import UserError
 
 
 MONTHS_ES = {
@@ -20,6 +21,14 @@ MONTHS_ES = {
 
 class SaleOrder(models.Model):
     _inherit = "sale.order"
+
+    fcr_receipt_amount = fields.Monetary(
+        string="Importe de recibo FCR",
+        currency_field="currency_id",
+        copy=False,
+    )
+    fcr_receipt_date = fields.Date(string="Fecha de recibo FCR", copy=False)
+    fcr_receipt_exchange_rate = fields.Float(string="Tasa de recibo FCR", copy=False)
 
     def _get_order_lines_to_report(self):
         lines = super()._get_order_lines_to_report()
@@ -135,9 +144,9 @@ class SaleOrder(models.Model):
 
     def _get_sale_receipt_date_text(self):
         self.ensure_one()
-        receipt_date = fields.Date.context_today(self)
+        receipt_date = self.fcr_receipt_date or fields.Date.context_today(self)
         if self.date_order:
-            receipt_date = fields.Date.to_date(self.date_order)
+            receipt_date = self.fcr_receipt_date or fields.Date.to_date(self.date_order)
         return f"{receipt_date.day} de {MONTHS_ES[receipt_date.month]} del {receipt_date.year}"
 
     def _get_sale_receipt_date_text_for(self, receipt_date):
@@ -189,13 +198,8 @@ class SaleOrder(models.Model):
 
     def _get_sale_receipt_paid_amount(self):
         self.ensure_one()
-        sale_invoices = self.invoice_ids.filtered(
-            lambda move: move.state != "cancel" and move.move_type in ("out_invoice", "out_receipt")
-        )
-        paid_amount = sum(sale_invoices.mapped(lambda move: move.amount_total - move.amount_residual))
-        if paid_amount:
-            return paid_amount
-
+        if self.fcr_receipt_amount:
+            return self.fcr_receipt_amount
         downpayment_lines = self.order_line.filtered(
             lambda line: not line.display_type and "is_downpayment" in line._fields and line.is_downpayment
         )
@@ -203,6 +207,8 @@ class SaleOrder(models.Model):
 
     def _get_sale_receipt_exchange_rate(self):
         self.ensure_one()
+        if self.fcr_receipt_exchange_rate:
+            return self.fcr_receipt_exchange_rate
         if "manual_currency_exchange_rate" in self._fields and self.manual_currency_exchange_rate:
             return self.manual_currency_exchange_rate
         if "currency_rate" in self._fields and self.currency_rate:
@@ -211,29 +217,23 @@ class SaleOrder(models.Model):
 
     def _get_sale_receipt_exchange_rate_text(self):
         self.ensure_one()
-        invoices = self.invoice_ids.filtered(lambda move: move.state != "cancel" and move.move_type in ("out_invoice", "out_receipt"))
-        for invoice in invoices:
-            rate_text = invoice._get_sale_receipt_exchange_rate_text()
-            if rate_text:
-                return rate_text
+        if self.currency_id == self.company_id.currency_id:
+            return ""
         rate = self._get_sale_receipt_exchange_rate()
-        if rate and self.currency_id.name == "DOP":
-            receipt_date = self.date_order or fields.Date.context_today(self)
+        if rate:
+            receipt_date = self.fcr_receipt_date or self.date_order or fields.Date.context_today(self)
             return f"Tasa del {self._get_sale_receipt_date_text_for(receipt_date)}: {rate:.2f}"
         return ""
 
     def _get_sale_receipt_document_label(self):
         self.ensure_one()
-        if self.state in ("draft", "sent"):
-            return "COTIZACIÓN"
         return "RECIBO DE VENTA"
 
     def action_print_sale_separation_receipt(self):
         self.ensure_one()
-        return self.env.ref("fcr_sale_management.action_report_sale_separation_receipt").report_action(
-            self,
-            config=False,
-        )
+        if self.state not in ("sale", "done"):
+            raise UserError(_("El Recibo FCR solo esta disponible en ordenes de venta confirmadas."))
+        return self.env["fcr.sale.receipt.wizard"].action_open_for_document(self)
 
     def _get_sale_receipt_values(self):
         self.ensure_one()

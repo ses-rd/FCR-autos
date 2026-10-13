@@ -14,7 +14,13 @@ class AccountMove(models.Model):
 
     def _get_sale_receipt_date_text(self):
         self.ensure_one()
-        receipt_date = self.invoice_date or fields.Date.context_today(self)
+        sale_order = self._get_sale_receipt_sale_order()
+        receipt_date = (
+            self.fcr_receipt_date
+            or (sale_order.fcr_receipt_date if sale_order else False)
+            or self.invoice_date
+            or fields.Date.context_today(self)
+        )
         return f"{receipt_date.day} de {MONTHS_ES[receipt_date.month]} del {receipt_date.year}"
 
     def _get_sale_receipt_date_text_for(self, receipt_date):
@@ -41,10 +47,7 @@ class AccountMove(models.Model):
 
     def _get_sale_receipt_document_label(self):
         self.ensure_one()
-        sale_order = self._get_sale_receipt_sale_order()
-        if sale_order and sale_order.state in ("draft", "sent"):
-            return sale_order._get_sale_receipt_document_label()
-        return "FACTURA"
+        return "RECIBO DE VENTA"
 
     def _get_sale_receipt_vehicle(self):
         self.ensure_one()
@@ -99,6 +102,10 @@ class AccountMove(models.Model):
     def _get_sale_receipt_exchange_rate(self):
         self.ensure_one()
         sale_order = self._get_sale_receipt_sale_order()
+        if self.fcr_receipt_exchange_rate:
+            return self.fcr_receipt_exchange_rate
+        if sale_order and sale_order.fcr_receipt_exchange_rate:
+            return sale_order.fcr_receipt_exchange_rate
         if sale_order:
             rate = sale_order._get_sale_receipt_exchange_rate()
             if rate:
@@ -120,11 +127,29 @@ class AccountMove(models.Model):
             if rate:
                 return f"Tasa del {self._get_sale_receipt_date_text_for(payment.date)}: {rate:.2f}"
 
+        if self.currency_id == self.company_currency_id:
+            return ""
+
         rate = self._get_sale_receipt_exchange_rate()
-        if rate and self.currency_id.name == "DOP":
-            receipt_date = self.invoice_date or fields.Date.context_today(self)
+        if rate:
+            sale_order = self._get_sale_receipt_sale_order()
+            receipt_date = (
+                self.fcr_receipt_date
+                or (sale_order.fcr_receipt_date if sale_order else False)
+                or self.invoice_date
+                or fields.Date.context_today(self)
+            )
             return f"Tasa del {self._get_sale_receipt_date_text_for(receipt_date)}: {rate:.2f}"
         return ""
+
+    def _get_sale_receipt_initial_payment_amount(self):
+        self.ensure_one()
+        sale_order = self._get_sale_receipt_sale_order()
+        if self.fcr_receipt_amount:
+            return self.fcr_receipt_amount
+        if sale_order and sale_order.fcr_receipt_amount:
+            return sale_order.fcr_receipt_amount
+        return self.amount_total - self.amount_residual
 
     def _get_sale_receipt_values(self):
         self.ensure_one()
@@ -133,7 +158,7 @@ class AccountMove(models.Model):
             return sale_order._get_sale_receipt_values()
 
         partner = self.partner_id
-        paid_amount = self.amount_total - self.amount_residual
+        paid_amount = self._get_sale_receipt_initial_payment_amount()
         phone = partner.phone or ""
         if not phone and "mobile" in partner._fields:
             phone = partner.mobile or ""
@@ -153,7 +178,7 @@ class AccountMove(models.Model):
             "items_text": self._get_sale_receipt_items_text(),
             "initial_payment": paid_amount,
             "total_cost": self.amount_total,
-            "balance": self.amount_residual,
+            "balance": self.amount_total - paid_amount,
             "currency": self.currency_id,
             "exchange_rate": self._get_sale_receipt_exchange_rate(),
             "exchange_rate_text": self._get_sale_receipt_exchange_rate_text(),
