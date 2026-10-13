@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from odoo import fields, models
+from odoo import _, fields, models
+from odoo.exceptions import UserError
 
 
 class FcrSaleReceiptWizard(models.TransientModel):
@@ -28,7 +29,21 @@ class FcrSaleReceiptWizard(models.TransientModel):
 
     def _get_receipt_document(self):
         self.ensure_one()
-        return self.sale_order_id or self.move_id
+        active_model = self.env.context.get("active_model")
+        active_id = self.env.context.get("active_id")
+        if active_model == "sale.order" and active_id:
+            sale_order = self.env["sale.order"].browse(active_id).exists()
+            if sale_order:
+                return sale_order
+        if self.sale_order_id.exists():
+            return self.sale_order_id
+        if active_model == "account.move" and active_id:
+            move = self.env["account.move"].browse(active_id).exists()
+            if move:
+                return move
+        if self.move_id.exists():
+            return self.move_id
+        raise UserError(_("No se encontro el documento para imprimir el Recibo FCR."))
 
     def default_get(self, fields_list):
         result = super().default_get(fields_list)
@@ -47,8 +62,8 @@ class FcrSaleReceiptWizard(models.TransientModel):
             result["move_id"] = default_move_id
             result["sale_order_id"] = False
 
-        sale_order = self.env["sale.order"].browse(result.get("sale_order_id"))
-        move = self.env["account.move"].browse(result.get("move_id"))
+        sale_order = self.env["sale.order"].browse(result.get("sale_order_id")).exists()
+        move = self.env["account.move"].browse(result.get("move_id")).exists()
         document = sale_order or move
         if document:
             residual = getattr(document, "amount_residual", 0.0)
