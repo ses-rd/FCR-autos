@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import _, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 
@@ -21,11 +21,29 @@ class FcrSaleReceiptWizard(models.TransientModel):
 
     def _compute_currency_id(self):
         for wizard in self:
+            sale_order = wizard.sale_order_id.exists()
+            move = wizard.move_id.exists()
             wizard.currency_id = (
-                wizard.sale_order_id.currency_id
-                or wizard.move_id.currency_id
+                sale_order.currency_id
+                or move.currency_id
                 or self.env.company.currency_id
             )
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        active_model = self.env.context.get("active_model")
+        active_id = self.env.context.get("active_id")
+        default_sale_order_id = self.env.context.get("default_sale_order_id")
+        for vals in vals_list:
+            sale_order_id = vals.get("sale_order_id") or default_sale_order_id
+            if active_model == "sale.order" and active_id:
+                sale_order_id = active_id
+            if sale_order_id:
+                vals["sale_order_id"] = sale_order_id
+                vals["move_id"] = False
+            elif vals.get("move_id") and not self.env["account.move"].browse(vals["move_id"]).exists():
+                vals["move_id"] = False
+        return super().create(vals_list)
 
     def _get_receipt_document(self):
         self.ensure_one()
@@ -54,6 +72,8 @@ class FcrSaleReceiptWizard(models.TransientModel):
 
         if active_model == "sale.order" and active_id and not default_sale_order_id:
             default_sale_order_id = active_id
+        if active_model != "account.move":
+            default_move_id = False
 
         if default_sale_order_id:
             result["sale_order_id"] = default_sale_order_id
@@ -64,6 +84,8 @@ class FcrSaleReceiptWizard(models.TransientModel):
 
         sale_order = self.env["sale.order"].browse(result.get("sale_order_id")).exists()
         move = self.env["account.move"].browse(result.get("move_id")).exists()
+        if not move:
+            result["move_id"] = False
         document = sale_order or move
         if document:
             residual = getattr(document, "amount_residual", 0.0)
