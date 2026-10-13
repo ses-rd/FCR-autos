@@ -231,7 +231,7 @@ class SaleOrder(models.Model):
 
     def action_print_sale_separation_receipt(self):
         self.ensure_one()
-        if self.state != "sale":
+        if self.state not in ("sale", "done"):
             raise UserError(_("El Recibo FCR solo esta disponible en ordenes de venta confirmadas."))
         return self.env["fcr.sale.receipt.wizard"].action_open_for_document(self)
 

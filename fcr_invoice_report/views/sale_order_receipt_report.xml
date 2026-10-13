@@ -26,6 +26,7 @@
     </record>
 
     <record id="action_report_invoice_separation_receipt" model="ir.actions.report">
+        <field name="name">Recibo de Venta / SeparaciÃ³n</field>
         <field name="model">account.move</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">fcr_invoice_report.report_invoice_separation_receipt</field>

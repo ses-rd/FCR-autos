@@ -22,8 +22,7 @@ class AccountMove(models.Model):
 
     def action_print_sale_separation_receipt(self):
         self.ensure_one()
-        report = self.env.ref("fcr_invoice_report.action_report_invoice_separation_receipt")
-        return report.with_context(close_on_report_download=True).report_action(self, config=False)
+        return self.env["fcr.sale.receipt.wizard"].action_open_for_document(self)
 
     def _get_sale_receipt_date_text(self):
         self.ensure_one()
@@ -139,6 +138,9 @@ class AccountMove(models.Model):
             rate = payment.amount / paid_document_amount if paid_document_amount else 0.0
             if rate:
                 return f"Tasa del {self._get_sale_receipt_date_text_for(payment.date)}: {rate:.2f}"
+
+        if self.currency_id == self.company_currency_id:
+            return ""
 
         rate = self._get_sale_receipt_exchange_rate()
         if rate:
