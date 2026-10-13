@@ -29,14 +29,15 @@
         <field name="name">sale.order.form.fcr.receipt.button</field>
         <field name="model">sale.order</field>
         <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="priority">90</field>
         <field name="arch" type="xml">
-            <xpath expr="//header" position="inside">
+            <xpath expr="//header/button[@name='action_confirm'][1]" position="after">
                 <button
                     name="action_print_sale_separation_receipt"
                     type="object"
                     string="Recibo FCR"
                     class="btn-secondary"
-                    invisible="state != 'sale'"
+                    invisible="state not in ['sale', 'done']"
                 />
             </xpath>
         </field>
