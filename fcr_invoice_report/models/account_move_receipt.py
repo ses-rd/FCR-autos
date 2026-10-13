@@ -22,7 +22,8 @@ class AccountMove(models.Model):
 
     def action_print_sale_separation_receipt(self):
         self.ensure_one()
-        return self.env["fcr.sale.receipt.wizard"].action_open_for_document(self)
+        report = self.env.ref("fcr_invoice_report.action_report_invoice_separation_receipt")
+        return report.with_context(close_on_report_download=True).report_action(self, config=False)
 
     def _get_sale_receipt_date_text(self):
         self.ensure_one()

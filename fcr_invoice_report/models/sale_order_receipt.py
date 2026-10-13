@@ -217,6 +217,8 @@ class SaleOrder(models.Model):
 
     def _get_sale_receipt_exchange_rate_text(self):
         self.ensure_one()
+        if self.currency_id == self.company_id.currency_id:
+            return ""
         rate = self._get_sale_receipt_exchange_rate()
         if rate:
             receipt_date = self.fcr_receipt_date or self.date_order or fields.Date.context_today(self)
