@@ -8,8 +8,6 @@ class FcrSaleReceiptWizard(models.TransientModel):
     _name = "fcr.sale.receipt.wizard"
     _description = "FCR sale receipt draft"
 
-    move_id = fields.Many2one("account.move", readonly=True)
-    sale_order_id = fields.Many2one("sale.order", readonly=True)
     source_model = fields.Selection(
         [
             ("sale.order", "Orden de venta"),
@@ -43,9 +41,42 @@ class FcrSaleReceiptWizard(models.TransientModel):
             source_model, source_id = self._get_source_from_values(vals)
             vals["source_model"] = source_model
             vals["source_id"] = source_id
-            vals["sale_order_id"] = source_id if source_model == "sale.order" else False
-            vals["move_id"] = source_id if source_model == "account.move" else False
         return super().create(vals_list)
+
+    @api.model
+    def action_open_for_document(self, document):
+        document.ensure_one()
+        receipt_date = (
+            document.fcr_receipt_date
+            or getattr(document, "invoice_date", False)
+            or fields.Date.to_date(getattr(document, "date_order", False))
+            or fields.Date.context_today(self)
+        )
+        receipt_rate = getattr(document, "_get_sale_receipt_exchange_rate", lambda: 0.0)()
+        wizard = self.create({
+            "source_model": document._name,
+            "source_id": document.id,
+            "amount": document.fcr_receipt_amount
+            or getattr(document, "amount_residual", 0.0)
+            or document.amount_total,
+            "receipt_date": receipt_date,
+            "exchange_rate": document.fcr_receipt_exchange_rate or receipt_rate or 0.0,
+        })
+        view = self.env.ref("fcr_invoice_report.view_fcr_sale_receipt_wizard_form")
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Recibo FCR",
+            "res_model": self._name,
+            "res_id": wizard.id,
+            "view_mode": "form",
+            "view_id": view.id,
+            "views": [(view.id, "form")],
+            "target": "new",
+            "context": {
+                "active_model": document._name,
+                "active_id": document.id,
+            },
+        }
 
     def _get_source_from_values(self, vals=None):
         vals = vals or {}
@@ -58,20 +89,6 @@ class FcrSaleReceiptWizard(models.TransientModel):
             if active_model in ("sale.order", "account.move") and active_id:
                 source_model = active_model
                 source_id = active_id
-
-        if not source_model or not source_id:
-            sale_order_id = vals.get("sale_order_id") or self.env.context.get("default_sale_order_id")
-            move_id = vals.get("move_id") or self.env.context.get("default_move_id")
-            if sale_order_id:
-                source_model = "sale.order"
-                source_id = sale_order_id
-            elif move_id:
-                if self.env["account.move"].browse(move_id).exists():
-                    source_model = "account.move"
-                    source_id = move_id
-                elif self.env["sale.order"].browse(move_id).exists():
-                    source_model = "sale.order"
-                    source_id = move_id
 
         if source_model not in ("sale.order", "account.move") or not source_id:
             raise UserError(_("No se encontro el documento para imprimir el Recibo FCR."))
@@ -95,16 +112,9 @@ class FcrSaleReceiptWizard(models.TransientModel):
 
     def default_get(self, fields_list):
         result = super().default_get(fields_list)
-        default_move_id = self.env.context.get("default_move_id")
-        default_sale_order_id = self.env.context.get("default_sale_order_id")
-        source_model, source_id = self._get_source_from_values({
-            "sale_order_id": default_sale_order_id,
-            "move_id": default_move_id,
-        })
+        source_model, source_id = self._get_source_from_values()
         result["source_model"] = source_model
         result["source_id"] = source_id
-        result["sale_order_id"] = source_id if source_model == "sale.order" else False
-        result["move_id"] = source_id if source_model == "account.move" else False
 
         document = self.env[source_model].browse(source_id).exists()
         if document:

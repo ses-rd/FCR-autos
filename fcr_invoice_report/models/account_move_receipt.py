@@ -22,20 +22,7 @@ class AccountMove(models.Model):
 
     def action_print_sale_separation_receipt(self):
         self.ensure_one()
-        return {
-            "type": "ir.actions.act_window",
-            "name": "Recibo FCR",
-            "res_model": "fcr.sale.receipt.wizard",
-            "view_mode": "form",
-            "target": "new",
-            "context": {
-                "active_model": "account.move",
-                "active_id": self.id,
-                "default_source_model": "account.move",
-                "default_source_id": self.id,
-                "default_move_id": self.id,
-            },
-        }
+        return self.env["fcr.sale.receipt.wizard"].action_open_for_document(self)
 
     def _get_sale_receipt_date_text(self):
         self.ensure_one()

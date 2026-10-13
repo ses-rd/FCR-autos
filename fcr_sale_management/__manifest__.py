@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "FCR - Sale Management",
-    "version": "19.0.1.9.2",
+    "version": "19.0.1.9.3",
     "category": "Sales/Sales",
     "summary": """
         Módulo para gestionar presupuestos, pedidos y plantillas.

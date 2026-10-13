@@ -243,21 +243,7 @@ class SaleOrder(models.Model):
         self.ensure_one()
         if self.state != "sale":
             raise UserError(_("El Recibo FCR solo esta disponible en ordenes de venta confirmadas."))
-        return {
-            "type": "ir.actions.act_window",
-            "name": "Recibo FCR",
-            "res_model": "fcr.sale.receipt.wizard",
-            "view_mode": "form",
-            "target": "new",
-            "context": {
-                "active_model": "sale.order",
-                "active_id": self.id,
-                "default_source_model": "sale.order",
-                "default_source_id": self.id,
-                "default_sale_order_id": self.id,
-                "default_move_id": False,
-            },
-        }
+        return self.env["fcr.sale.receipt.wizard"].action_open_for_document(self)
 
     def _get_sale_receipt_values(self):
         self.ensure_one()
