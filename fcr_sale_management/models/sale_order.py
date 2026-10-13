@@ -252,6 +252,8 @@ class SaleOrder(models.Model):
             "context": {
                 "active_model": "sale.order",
                 "active_id": self.id,
+                "default_source_model": "sale.order",
+                "default_source_id": self.id,
                 "default_sale_order_id": self.id,
                 "default_move_id": False,
             },

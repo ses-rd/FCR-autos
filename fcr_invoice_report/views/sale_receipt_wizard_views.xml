@@ -6,8 +6,8 @@
         <field name="arch" type="xml">
             <form string="Recibo FCR">
                 <group>
-                    <field name="move_id" invisible="1"/>
-                    <field name="sale_order_id" invisible="1"/>
+                    <field name="source_model" invisible="1"/>
+                    <field name="source_id" invisible="1"/>
                     <field name="currency_id" invisible="1"/>
                     <field name="amount"/>
                     <field name="receipt_date"/>

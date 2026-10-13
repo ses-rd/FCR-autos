@@ -29,6 +29,10 @@ class AccountMove(models.Model):
             "view_mode": "form",
             "target": "new",
             "context": {
+                "active_model": "account.move",
+                "active_id": self.id,
+                "default_source_model": "account.move",
+                "default_source_id": self.id,
                 "default_move_id": self.id,
             },
         }

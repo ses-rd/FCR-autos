@@ -10,6 +10,14 @@ class FcrSaleReceiptWizard(models.TransientModel):
 
     move_id = fields.Many2one("account.move", readonly=True)
     sale_order_id = fields.Many2one("sale.order", readonly=True)
+    source_model = fields.Selection(
+        [
+            ("sale.order", "Orden de venta"),
+            ("account.move", "Factura"),
+        ],
+        readonly=True,
+    )
+    source_id = fields.Integer(readonly=True)
     currency_id = fields.Many2one(
         "res.currency",
         compute="_compute_currency_id",
@@ -21,88 +29,84 @@ class FcrSaleReceiptWizard(models.TransientModel):
 
     def _compute_currency_id(self):
         for wizard in self:
-            sale_order = wizard.sale_order_id.exists()
-            move = wizard.move_id.exists()
+            document = wizard._get_receipt_document(raise_if_missing=False)
             wizard.currency_id = (
-                sale_order.currency_id
-                or move.currency_id
+                document.currency_id
+                if document
+                else False
                 or self.env.company.currency_id
             )
 
     @api.model_create_multi
     def create(self, vals_list):
-        active_model = self.env.context.get("active_model")
-        active_id = self.env.context.get("active_id")
-        default_sale_order_id = self.env.context.get("default_sale_order_id")
         for vals in vals_list:
-            sale_order_id = vals.get("sale_order_id") or default_sale_order_id
-            if active_model == "sale.order" and active_id:
-                sale_order_id = active_id
-            if sale_order_id:
-                vals["sale_order_id"] = sale_order_id
-                vals["move_id"] = False
-            elif vals.get("move_id"):
-                move_id = vals["move_id"]
-                if not self.env["account.move"].browse(move_id).exists():
-                    sale_order = self.env["sale.order"].browse(move_id).exists()
-                    if sale_order:
-                        vals["sale_order_id"] = sale_order.id
-                    vals["move_id"] = False
+            source_model, source_id = self._get_source_from_values(vals)
+            vals["source_model"] = source_model
+            vals["source_id"] = source_id
+            vals["sale_order_id"] = source_id if source_model == "sale.order" else False
+            vals["move_id"] = source_id if source_model == "account.move" else False
         return super().create(vals_list)
 
-    def _get_receipt_document(self):
+    def _get_source_from_values(self, vals=None):
+        vals = vals or {}
+        source_model = vals.get("source_model") or self.env.context.get("default_source_model")
+        source_id = vals.get("source_id") or self.env.context.get("default_source_id")
+
+        if not source_model or not source_id:
+            active_model = self.env.context.get("active_model")
+            active_id = self.env.context.get("active_id")
+            if active_model in ("sale.order", "account.move") and active_id:
+                source_model = active_model
+                source_id = active_id
+
+        if not source_model or not source_id:
+            sale_order_id = vals.get("sale_order_id") or self.env.context.get("default_sale_order_id")
+            move_id = vals.get("move_id") or self.env.context.get("default_move_id")
+            if sale_order_id:
+                source_model = "sale.order"
+                source_id = sale_order_id
+            elif move_id:
+                if self.env["account.move"].browse(move_id).exists():
+                    source_model = "account.move"
+                    source_id = move_id
+                elif self.env["sale.order"].browse(move_id).exists():
+                    source_model = "sale.order"
+                    source_id = move_id
+
+        if source_model not in ("sale.order", "account.move") or not source_id:
+            raise UserError(_("No se encontro el documento para imprimir el Recibo FCR."))
+        return source_model, source_id
+
+    def _get_receipt_document(self, raise_if_missing=True):
         self.ensure_one()
-        active_model = self.env.context.get("active_model")
-        active_id = self.env.context.get("active_id")
-        if active_model == "sale.order" and active_id:
-            sale_order = self.env["sale.order"].browse(active_id).exists()
-            if sale_order:
-                return sale_order
-        if self.sale_order_id.exists():
-            return self.sale_order_id
-        if self.move_id and not self.move_id.exists():
-            sale_order = self.env["sale.order"].browse(self.move_id.id).exists()
-            if sale_order:
-                return sale_order
-        if active_model == "account.move" and active_id:
-            move = self.env["account.move"].browse(active_id).exists()
-            if move:
-                return move
-        if self.move_id.exists():
-            return self.move_id
-        raise UserError(_("No se encontro el documento para imprimir el Recibo FCR."))
+        source_model = self.source_model
+        source_id = self.source_id
+        if not source_model or not source_id:
+            source_model, source_id = self._get_source_from_values()
+
+        document = self.env[source_model].browse(source_id).exists()
+        if not document and source_model == "account.move":
+            document = self.env["sale.order"].browse(source_id).exists()
+        if document:
+            return document
+        if raise_if_missing:
+            raise UserError(_("No se encontro el documento para imprimir el Recibo FCR."))
+        return self.env["sale.order"]
 
     def default_get(self, fields_list):
         result = super().default_get(fields_list)
         default_move_id = self.env.context.get("default_move_id")
         default_sale_order_id = self.env.context.get("default_sale_order_id")
-        active_model = self.env.context.get("active_model")
-        active_id = self.env.context.get("active_id")
+        source_model, source_id = self._get_source_from_values({
+            "sale_order_id": default_sale_order_id,
+            "move_id": default_move_id,
+        })
+        result["source_model"] = source_model
+        result["source_id"] = source_id
+        result["sale_order_id"] = source_id if source_model == "sale.order" else False
+        result["move_id"] = source_id if source_model == "account.move" else False
 
-        if active_model == "sale.order" and active_id and not default_sale_order_id:
-            default_sale_order_id = active_id
-        if active_model != "account.move":
-            default_move_id = False
-
-        if default_sale_order_id:
-            result["sale_order_id"] = default_sale_order_id
-            result["move_id"] = False
-        elif default_move_id:
-            move = self.env["account.move"].browse(default_move_id).exists()
-            if move:
-                result["move_id"] = move.id
-                result["sale_order_id"] = False
-            else:
-                sale_order = self.env["sale.order"].browse(default_move_id).exists()
-                if sale_order:
-                    result["sale_order_id"] = sale_order.id
-                result["move_id"] = False
-
-        sale_order = self.env["sale.order"].browse(result.get("sale_order_id")).exists()
-        move = self.env["account.move"].browse(result.get("move_id")).exists()
-        if not move:
-            result["move_id"] = False
-        document = sale_order or move
+        document = self.env[source_model].browse(source_id).exists()
         if document:
             residual = getattr(document, "amount_residual", 0.0)
             result.setdefault("amount", document.fcr_receipt_amount or residual or document.amount_total)
