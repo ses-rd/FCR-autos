@@ -128,7 +128,7 @@ class AccountMove(models.Model):
                 return f"Tasa del {self._get_sale_receipt_date_text_for(payment.date)}: {rate:.2f}"
 
         rate = self._get_sale_receipt_exchange_rate()
-        if rate and self.currency_id.name == "DOP":
+        if rate:
             receipt_date = self.invoice_date or fields.Date.context_today(self)
             return f"Tasa del {self._get_sale_receipt_date_text_for(receipt_date)}: {rate:.2f}"
         return ""
