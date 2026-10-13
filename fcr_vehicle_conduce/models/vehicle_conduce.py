@@ -437,7 +437,12 @@ class FcrVehicleConduce(models.Model):
             for vals in vals_list:
                 if vals.get('state') == 'done':
                     raise UserError(_('Use el botón Completar para completar el conduce.'))
-                new_vals_list.append(self._update_signature_metadata(vals))
+                vals = self._update_signature_metadata(vals)
+                if not vals.get('check_battery_no_7'):
+                    vals['battery_quantity'] = 0
+                if not vals.get('check_keys'):
+                    vals['key_quantity'] = 0
+                new_vals_list.append(vals)
             vals_list = new_vals_list
         return super().create(vals_list)
 

@@ -220,7 +220,7 @@ class SaleOrder(models.Model):
         if self.currency_id == self.company_id.currency_id:
             return ""
         rate = self._get_sale_receipt_exchange_rate()
-        if rate and self.currency_id.name == "DOP":
+        if rate:
             receipt_date = self.fcr_receipt_date or self.date_order or fields.Date.context_today(self)
             return f"Tasa del {self._get_sale_receipt_date_text_for(receipt_date)}: {rate:.2f}"
         return ""

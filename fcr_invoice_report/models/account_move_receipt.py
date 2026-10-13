@@ -143,7 +143,7 @@ class AccountMove(models.Model):
             return ""
 
         rate = self._get_sale_receipt_exchange_rate()
-        if rate and self.currency_id.name == "DOP":
+        if rate:
             sale_order = self._get_sale_receipt_sale_order()
             receipt_date = (
                 self.fcr_receipt_date
