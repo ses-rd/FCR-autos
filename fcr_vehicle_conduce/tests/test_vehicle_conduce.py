@@ -779,10 +779,14 @@ class TestVehicleConduce(TransactionCase):
         incoming_buttons = form.xpath('//header/button[@name="%s"]' % self.incoming_report.id)
         outgoing_checklist_buttons = form.xpath('//header/button[@name="action_open_vehicle_conduce_outgoing"]')
         incoming_checklist_buttons = form.xpath('//header/button[@name="action_open_vehicle_conduce_incoming"]')
+        assigned_print_buttons = form.xpath('//header/button[@name="do_print_picking"][@type="object"]')
+        done_print_buttons = form.xpath('//header/button[@name="%s"][@type="action"]' % self.env.ref('stock.action_report_delivery').id)
         self.assertEqual(len(outgoing_buttons), 1)
         self.assertEqual(len(incoming_buttons), 1)
         self.assertEqual(len(outgoing_checklist_buttons), 1)
         self.assertEqual(len(incoming_checklist_buttons), 1)
+        self.assertEqual(len(assigned_print_buttons), 1)
+        self.assertEqual(len(done_print_buttons), 1)
         self.assertEqual(outgoing_buttons[0].get('type'), 'action')
         self.assertEqual(incoming_buttons[0].get('type'), 'action')
         self.assertEqual(outgoing_checklist_buttons[0].get('type'), 'object')
@@ -795,14 +799,14 @@ class TestVehicleConduce(TransactionCase):
         self.assertTrue(form.xpath('//field[@name="vehicle_conduce_inspector_signature"][@widget="signature"]'))
         self.assertTrue(form.xpath('//field[@name="vehicle_conduce_customer_name"]'))
         self.assertTrue(form.xpath('//field[@name="vehicle_conduce_customer_signature"][@widget="signature"]'))
-        # Both standard Print buttons must remain present and keep their targets.
-        self.assertTrue(form.xpath('//header/button[@name="do_print_picking"][@type="object"]'))
-        standard_id = self.env.ref('stock.action_report_delivery').id
-        self.assertTrue(form.xpath('//header/button[@name="%s"][@type="action"]' % standard_id))
+        self.assertEqual(outgoing_buttons[0].get('string'), 'Imprimir conduce')
+        self.assertEqual(incoming_buttons[0].get('string'), 'Imprimir conduce')
         outgoing_condition = outgoing_buttons[0].get('invisible')
         incoming_condition = incoming_buttons[0].get('invisible')
         outgoing_checklist_condition = outgoing_checklist_buttons[0].get('invisible')
         incoming_checklist_condition = incoming_checklist_buttons[0].get('invisible')
+        assigned_print_condition = assigned_print_buttons[0].get('invisible')
+        done_print_condition = done_print_buttons[0].get('invisible')
         for state in ('draft', 'waiting', 'confirmed', 'assigned', 'done', 'cancel'):
             for code in ('incoming', 'internal', 'outgoing'):
                 for sale_id in (False, 1):
@@ -821,6 +825,8 @@ class TestVehicleConduce(TransactionCase):
                                 incoming_visible = not safe_eval(incoming_condition, eval_context)
                                 outgoing_checklist_visible = not safe_eval(outgoing_checklist_condition, eval_context)
                                 incoming_checklist_visible = not safe_eval(incoming_checklist_condition, eval_context)
+                                assigned_print_visible = not safe_eval(assigned_print_condition, eval_context)
+                                done_print_visible = not safe_eval(done_print_condition, eval_context)
                                 expected_outgoing = code == 'outgoing' and state in ('assigned', 'done')
                                 expected_incoming = (
                                     code == 'incoming'
@@ -831,6 +837,9 @@ class TestVehicleConduce(TransactionCase):
                                 self.assertEqual(incoming_visible, expected_incoming)
                                 self.assertEqual(outgoing_checklist_visible, outgoing_visible)
                                 self.assertEqual(incoming_checklist_visible, incoming_visible)
+                                eligible_conduce = expected_outgoing or expected_incoming
+                                self.assertEqual(assigned_print_visible, state == 'assigned' and not eligible_conduce)
+                                self.assertEqual(done_print_visible, state == 'done' and not eligible_conduce)
 
     def test_incoming_conduce_action_invocation_in_assigned_and_done(self):
         picking, _purchase, _vendor = self._purchase_picking()
