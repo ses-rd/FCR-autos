@@ -897,6 +897,24 @@ class TestVehicleConduce(TransactionCase):
         self.assertEqual(conduce.partner_id, vendor)
         self.assertEqual(conduce.state, 'draft')
 
+    def test_odometer_editable_on_incoming_and_outgoing_conduces(self):
+        outgoing_picking, _sale = self._picking()
+        incoming_picking, _purchase, _vendor = self._purchase_picking()
+        outgoing = self.env['fcr.vehicle.conduce'].browse(
+            outgoing_picking.action_open_vehicle_conduce_outgoing()['res_id']
+        )
+        incoming = self.env['fcr.vehicle.conduce'].browse(
+            incoming_picking.action_open_vehicle_conduce_incoming()['res_id']
+        )
+
+        outgoing.write({'vehicle_odometer': 12500})
+        incoming.write({'vehicle_odometer': 18400})
+
+        self.assertEqual(outgoing.vehicle_id.odometer, 12500)
+        self.assertEqual(incoming.vehicle_id.odometer, 18400)
+        self.assertEqual(outgoing._get_pdf_values()['vehicle_odometer'], 12500)
+        self.assertEqual(incoming._get_pdf_values()['vehicle_odometer'], 18400)
+
     def test_same_vehicle_can_have_independent_incoming_and_outgoing_conduces(self):
         product, vehicle = self._vehicle_product()
         incoming, _purchase, _vendor = self._purchase_picking([product])

@@ -167,7 +167,11 @@ class FcrVehicleConduce(models.Model):
     vehicle_model_year = fields.Selection(related='vehicle_id.model_year', string='Año')
     vehicle_license_plate = fields.Char(related='vehicle_id.license_plate', string='Placa')
     vehicle_vin_sn = fields.Char(related='vehicle_id.vin_sn', string='Chasis')
-    vehicle_odometer = fields.Float(related='vehicle_id.odometer', string='Kms-Millas')
+    vehicle_odometer = fields.Float(
+        related='vehicle_id.odometer',
+        string='Kms-Millas',
+        readonly=False,
+    )
     vehicle_odometer_unit = fields.Selection(related='vehicle_id.odometer_unit', string='Unidad odómetro')
     vehicle_color = fields.Char(related='vehicle_id.color', string='Color')
     vehicle_category_id = fields.Many2one(related='vehicle_id.category_id', string='Tipo')
