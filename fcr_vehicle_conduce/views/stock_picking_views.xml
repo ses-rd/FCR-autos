@@ -10,7 +10,7 @@
             <xpath expr="//header/button[@name='do_print_picking']" position="attributes">
                 <attribute name="invisible">state != 'assigned' or (picking_type_code == 'outgoing' and state in ('assigned', 'done')) or (picking_type_code == 'incoming' and state in ('assigned', 'done') and (purchase_id or vehicle_entry_type == 'consignment'))</attribute>
             </xpath>
-            <xpath expr="//header/button[@type='action'][@string='Print']" position="attributes">
+            <xpath expr="//header/button[@name='%(stock.action_report_delivery)d']" position="attributes">
                 <attribute name="invisible">state != 'done' or (picking_type_code == 'outgoing' and state in ('assigned', 'done')) or (picking_type_code == 'incoming' and state in ('assigned', 'done') and (purchase_id or vehicle_entry_type == 'consignment'))</attribute>
             </xpath>
             <xpath expr="//header/field[@name='state'][1]" position="before">
