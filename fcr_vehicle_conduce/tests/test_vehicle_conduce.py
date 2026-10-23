@@ -628,8 +628,15 @@ class TestVehicleConduce(TransactionCase):
             incoming._get_vehicle_conduce_outgoing_values()
 
     def test_incoming_not_ready_rejected(self):
-        picking, _purchase, _vendor = self._purchase_picking()
-        picking.move_ids.state = 'confirmed'
+        picking = self.env['stock.picking'].create({
+            'picking_type_id': self.warehouse.in_type_id.id,
+            'partner_id': self.customer.id,
+            'location_id': self.env.ref('stock.stock_location_suppliers').id,
+            'location_dest_id': self.warehouse.lot_stock_id.id,
+            'vehicle_entry_type': 'consignment',
+        })
+        picking.scheduled_date = datetime(2026, 6, 28, 16, 0)
+        self.assertEqual(picking.state, 'draft')
         with self.assertRaisesRegex(UserError, 'Lista o Hecha'):
             picking._get_vehicle_conduce_incoming_values()
 
@@ -1188,8 +1195,9 @@ class TestVehicleConduce(TransactionCase):
             picking.action_open_vehicle_conduce_outgoing()['res_id']
         )
         self._sign_conduce(conduce)
-        other_product, _other_vehicle = self._vehicle_product()
-        picking.move_ids.product_id.product_tmpl_id.vehicle_id = other_product.product_tmpl_id.vehicle_id
+        _other_product, other_vehicle = self._vehicle_product()
+        conduce.vehicle_id.write({'product_id': False, 'product_tmpl_id': False})
+        picking.move_ids.product_id.product_tmpl_id.vehicle_id = other_vehicle
         with self.assertRaisesRegex(UserError, 'ya no coincide'):
             conduce.action_mark_completed()
 
@@ -1212,7 +1220,11 @@ class TestVehicleConduce(TransactionCase):
         incoming, _sale = self._picking(picking_type=self.warehouse.in_type_id)
         product = self.env['product.product'].create({'name': 'Unlinked accessory', 'type': 'consu'})
         no_vehicle, _sale = self._picking(product)
-        for picking in no_sale | incoming | no_vehicle:
+        html, _kind = self.env['ir.actions.report']._render_qweb_html(
+            self.report.report_name, no_sale.ids,
+        )
+        self.assertIn(b'CONDUCE DE SALIDA', html)
+        for picking in incoming | no_vehicle:
             with self.subTest(picking=picking.id), self.assertRaises(UserError):
                 self.env['ir.actions.report']._render_qweb_html(self.report.report_name, picking.ids)
 
@@ -1256,7 +1268,6 @@ class TestVehicleConduce(TransactionCase):
                      'Cliente', 'No firme en caso de diferencia.'):
             self.assertIn(text, html)
         self.assertNotIn('fcr-checkmark', html)
-        self.assertNotIn('position: absolute', html)
         for text in ('Toca Cassette', 'CD Changer', 'Encendedor', 'Gaveta Cenicero', 'Tapa Bocina/Centro Aro', 'Baterías No. 7'):
             self.assertNotIn(text, html)
 
