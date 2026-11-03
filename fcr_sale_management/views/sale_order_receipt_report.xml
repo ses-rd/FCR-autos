@@ -280,14 +280,6 @@
                             </tr>
                             <tr><td style="height: 16px;"></td></tr>
                             <tr>
-                                <td class="fcr-amount-label">Pagado antes de este recibo:</td>
-                                <td class="fcr-currency" t-esc="currency_label"/>
-                                <td class="fcr-amount" t-esc="'{:,.2f}'.format(receipt.get('paid_before_current') or 0.0)"/>
-                                <td class="fcr-currency-name" t-esc="currency and currency.name or ''"/>
-                                <td></td>
-                            </tr>
-                            <tr><td style="height: 16px;"></td></tr>
-                            <tr>
                                 <td class="fcr-amount-label">Pagado a la fecha:</td>
                                 <td class="fcr-currency" t-esc="currency_label"/>
                                 <td class="fcr-amount" t-esc="'{:,.2f}'.format(receipt.get('paid_to_date') or 0.0)"/>
