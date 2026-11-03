@@ -95,6 +95,13 @@ class TestFcrSaleReceipt(TransactionCase):
         self.assertEqual(second_values["balance"], 19000)
         self.assertEqual(second_values["date_text"], "5 de Octubre del 2026")
 
+    def test_order_fcr_history_summary_totals_and_balance(self):
+        self._create_receipt_history(1000, date(2026, 10, 1))
+        self._create_receipt_history(5000, date(2026, 10, 5))
+
+        self.assertEqual(self.order.fcr_receipt_paid_total, 6000)
+        self.assertEqual(self.order.fcr_receipt_balance, 19000)
+
     def test_new_receipt_defaults_to_today_not_previous_receipt_date(self):
         self.order.write({"fcr_receipt_date": date(2026, 9, 20)})
 
