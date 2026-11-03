@@ -6,5 +6,6 @@ from . import product_template
 from . import sale_order_receipt
 from . import account_move_receipt
 from . import account_move_send
+from . import sale_receipt_history
 from . import sale_receipt_wizard
 from . import account_payment_register

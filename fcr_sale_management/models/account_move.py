@@ -96,8 +96,107 @@ class AccountMove(models.Model):
         sale_order = self._get_sale_receipt_sale_order()
         if sale_order:
             return sale_order._get_sale_receipt_items_text()
-        lines = self.invoice_line_ids.filtered(lambda line: not line.display_type)
-        return ", ".join(lines.mapped("name"))
+        line = self._get_sale_receipt_primary_line()
+        return line.name or line.product_id.display_name if line else ""
+
+    def _get_sale_receipt_primary_line(self):
+        self.ensure_one()
+        lines = self.invoice_line_ids.filtered(
+            lambda line: not line.display_type and line.product_id
+        )
+        lines = lines.filtered(lambda line: not (
+            "is_downpayment" in line._fields and line.is_downpayment
+        ))
+        lines = lines.filtered(lambda line: not any(
+            field_name in line.product_id.product_tmpl_id._fields
+            and line.product_id.product_tmpl_id[field_name]
+            for field_name in ("is_marbete", "is_first_registration", "is_co2")
+        ))
+        vehicle_lines = lines.filtered(
+            lambda line: "vehicle_id" in line.product_id.product_tmpl_id._fields
+            and line.product_id.product_tmpl_id.vehicle_id
+        )
+        return (vehicle_lines or lines)[:1]
+
+    def _get_sale_receipt_total_cost(self):
+        self.ensure_one()
+        sale_order = self._get_sale_receipt_sale_order()
+        if sale_order:
+            return sale_order._get_sale_receipt_total_cost()
+        line = self._get_sale_receipt_primary_line()
+        return line.price_total if line else 0.0
+
+    def _get_sale_receipt_history_records(self):
+        self.ensure_one()
+        sale_order = self._get_sale_receipt_sale_order()
+        if sale_order:
+            return sale_order._get_sale_receipt_history_records()
+        return self.env["fcr.sale.receipt.history"].sudo().search(
+            [("invoice_id", "=", self.id)], order="id",
+        )
+
+    def _get_latest_sale_receipt_history(self):
+        self.ensure_one()
+        History = self.env["fcr.sale.receipt.history"].sudo()
+        sale_order = self._get_sale_receipt_sale_order()
+        if sale_order:
+            history = sale_order._get_sale_receipt_history_records()
+            return history[-1:] if history else History
+        invoice_history = History.search([("invoice_id", "=", self.id)], order="id desc", limit=1)
+        if invoice_history:
+            return invoice_history
+        history = self._get_sale_receipt_history_records()
+        return history[-1:] if history else History
+
+    def _get_sale_receipt_paid_to_date(self):
+        self.ensure_one()
+        sale_order = self._get_sale_receipt_sale_order()
+        if sale_order:
+            return sale_order._get_sale_receipt_paid_to_date()
+        history = self._get_sale_receipt_history_records()
+        return sum(history.mapped("amount")) if history else self._get_sale_receipt_initial_payment_amount()
+
+    def _migrate_legacy_sale_receipt(self):
+        self.ensure_one()
+        sale_order = self._get_sale_receipt_sale_order()
+        if sale_order:
+            if sale_order._get_sale_receipt_history_records():
+                return
+            amount = self._get_sale_receipt_initial_payment_amount()
+            if amount <= 0:
+                sale_order._migrate_legacy_sale_receipt()
+                return
+            receipt_date = (
+                self.fcr_receipt_date
+                or sale_order.fcr_receipt_date
+                or self.invoice_date
+                or fields.Date.context_today(self)
+            )
+            self.env["fcr.sale.receipt.history"].sudo().create({
+                "sale_order_id": sale_order.id,
+                "invoice_id": self.id,
+                "receipt_date": receipt_date,
+                "currency_id": sale_order.currency_id.id,
+                "amount": amount,
+                "exchange_rate": self.fcr_receipt_exchange_rate
+                or sale_order.fcr_receipt_exchange_rate
+                or sale_order._get_sale_receipt_exchange_rate()
+                or 0.0,
+            })
+            return
+
+        if self._get_sale_receipt_history_records():
+            return
+        amount = self._get_sale_receipt_initial_payment_amount()
+        if amount <= 0:
+            return
+        self.env["fcr.sale.receipt.history"].sudo().create({
+            "invoice_id": self.id,
+            "receipt_date": self.fcr_receipt_date or self.invoice_date or fields.Date.context_today(self),
+            "currency_id": self.currency_id.id,
+            "amount": amount,
+            "exchange_rate": self.fcr_receipt_exchange_rate or self._get_sale_receipt_exchange_rate() or 0.0,
+        })
 
     def _get_sale_receipt_exchange_rate(self):
         self.ensure_one()
@@ -154,11 +253,34 @@ class AccountMove(models.Model):
     def _get_sale_receipt_values(self):
         self.ensure_one()
         sale_order = self._get_sale_receipt_sale_order()
-        if sale_order and sale_order.state in ("draft", "sent"):
-            return sale_order._get_sale_receipt_values()
+        latest_receipt = self._get_latest_sale_receipt_history()
+        if sale_order:
+            values = sale_order._get_sale_receipt_values(receipt_history=latest_receipt)
+            if self.invoice_user_id:
+                values["executive"] = self.invoice_user_id.name
+            return values
 
         partner = self.partner_id
-        paid_amount = self._get_sale_receipt_initial_payment_amount()
+        history = self._get_sale_receipt_history_records()
+        paid_to_date = sum(history.mapped("amount")) if history else self._get_sale_receipt_initial_payment_amount()
+        advance_payment = latest_receipt.amount if latest_receipt else paid_to_date
+        paid_before_current = max(paid_to_date - advance_payment, 0.0)
+        receipt_date = (
+            latest_receipt.receipt_date
+            if latest_receipt
+            else self.fcr_receipt_date or self.invoice_date or fields.Date.context_today(self)
+        )
+        exchange_rate = (
+            latest_receipt.exchange_rate
+            if latest_receipt
+            else self._get_sale_receipt_exchange_rate()
+        )
+        exchange_rate_text = ""
+        if self.currency_id != self.company_currency_id and exchange_rate:
+            exchange_rate_text = (
+                f"Tasa del {self._get_sale_receipt_date_text_for(receipt_date)}: {exchange_rate:.2f}"
+            )
+        total_cost = self._get_sale_receipt_total_cost()
         phone = partner.phone or ""
         if not phone and "mobile" in partner._fields:
             phone = partner.mobile or ""
@@ -167,7 +289,7 @@ class AccountMove(models.Model):
             executive = self.user_id.name
 
         return {
-            "date_text": self._get_sale_receipt_date_text(),
+            "date_text": self._get_sale_receipt_date_text_for(receipt_date),
             "document_label": self._get_sale_receipt_document_label(),
             "company": self.company_id,
             "client": partner.name or "",
@@ -176,11 +298,14 @@ class AccountMove(models.Model):
             "email": partner.email or "",
             "vehicle": self._get_sale_receipt_vehicle(),
             "items_text": self._get_sale_receipt_items_text(),
-            "initial_payment": paid_amount,
-            "total_cost": self.amount_total,
-            "balance": self.amount_total - paid_amount,
+            "initial_payment": advance_payment,
+            "advance_payment": advance_payment,
+            "paid_before_current": paid_before_current,
+            "paid_to_date": paid_to_date,
+            "total_cost": total_cost,
+            "balance": max(total_cost - paid_to_date, 0.0),
             "currency": self.currency_id,
-            "exchange_rate": self._get_sale_receipt_exchange_rate(),
-            "exchange_rate_text": self._get_sale_receipt_exchange_rate_text(),
+            "exchange_rate": exchange_rate,
+            "exchange_rate_text": exchange_rate_text,
             "executive": executive,
         }
