@@ -29,6 +29,33 @@ class SaleOrder(models.Model):
     )
     fcr_receipt_date = fields.Date(string="Fecha de recibo FCR", copy=False)
     fcr_receipt_exchange_rate = fields.Float(string="Tasa de recibo FCR", copy=False)
+    fcr_receipt_history_ids = fields.One2many(
+        "fcr.sale.receipt.history", "sale_order_id", string="Historial de recibos FCR",
+    )
+    fcr_receipt_paid_total = fields.Monetary(
+        string="Total recibido por Recibo FCR",
+        currency_field="currency_id",
+        compute="_compute_fcr_receipt_summary",
+    )
+    fcr_receipt_balance = fields.Monetary(
+        string="Balance por Recibo FCR",
+        currency_field="currency_id",
+        compute="_compute_fcr_receipt_summary",
+    )
+
+    @api.depends(
+        "fcr_receipt_history_ids.amount",
+        "fcr_receipt_amount",
+        "order_line.price_total",
+        "order_line.display_type",
+        "order_line.product_id",
+    )
+    def _compute_fcr_receipt_summary(self):
+        for order in self:
+            history = order.fcr_receipt_history_ids
+            paid = sum(history.mapped("amount")) if history else order.fcr_receipt_amount
+            order.fcr_receipt_paid_total = paid
+            order.fcr_receipt_balance = max(order._get_sale_receipt_total_cost() - paid, 0.0)
 
     def _get_order_lines_to_report(self):
         lines = super()._get_order_lines_to_report()
