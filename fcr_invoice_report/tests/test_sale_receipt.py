@@ -176,7 +176,7 @@ class TestFcrSaleReceipt(TransactionCase):
         self.assertEqual(output_type, "html")
         self.assertIn(b"Total a pagar", html)
         self.assertIn(b"Avance de pago", html)
-        self.assertIn(b"Pagado antes de este recibo", html)
+        self.assertNotIn(b"Pagado antes de este recibo", html)
         self.assertIn(b"Pagado a la fecha", html)
         self.assertIn(b"Pendiente por pagar", html)
         self.assertIn(b"Primary vehicle line", html)
