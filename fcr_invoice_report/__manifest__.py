@@ -1,6 +1,6 @@
 {
     "name": "FCR - Incoice",
-    "version": "19.0.1.8.12",
+    "version": "19.0.1.8.13",
     "author": "SEGU",
     "category": "Accounting",
     "summary": "Custom invoice",
