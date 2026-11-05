@@ -30,15 +30,6 @@ class SaleOrder(models.Model):
     fcr_receipt_date = fields.Date(string="Fecha de recibo FCR", copy=False)
     fcr_receipt_exchange_rate = fields.Float(string="Tasa de recibo FCR", copy=False)
 
-    @api.model
-    def _fcr_disable_legacy_receipt_history_view(self):
-        view = self.env.ref(
-            "fcr_invoice_report.sale_order_form_fcr_receipt_history",
-            raise_if_not_found=False,
-        )
-        if view:
-            view.sudo().write({"active": False})
-
     def _get_order_lines_to_report(self):
         lines = super()._get_order_lines_to_report()
         return lines.filtered(
