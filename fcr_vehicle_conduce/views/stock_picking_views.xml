@@ -8,10 +8,10 @@
             <!-- Keep standard printing for other transfers, but route eligible vehicle
                  transfers through the dedicated conduce report buttons below. -->
             <xpath expr="//header/button[@name='do_print_picking']" position="attributes">
-                <attribute name="invisible">state != 'assigned' or (picking_type_code == 'outgoing' and state in ('assigned', 'done')) or (picking_type_code == 'incoming' and state in ('assigned', 'done') and (purchase_id or vehicle_entry_type in ('consignment', 'return')))</attribute>
+                <attribute name="invisible">state != 'assigned' or (picking_type_code == 'outgoing' and state in ('assigned', 'done')) or (picking_type_code == 'incoming' and state in ('assigned', 'done') and (purchase_id or vehicle_entry_type == 'consignment'))</attribute>
             </xpath>
             <xpath expr="//header/button[@name='%(stock.action_report_delivery)d']" position="attributes">
-                <attribute name="invisible">state != 'done' or (picking_type_code == 'outgoing' and state in ('assigned', 'done')) or (picking_type_code == 'incoming' and state in ('assigned', 'done') and (purchase_id or vehicle_entry_type in ('consignment', 'return')))</attribute>
+                <attribute name="invisible">state != 'done' or (picking_type_code == 'outgoing' and state in ('assigned', 'done')) or (picking_type_code == 'incoming' and state in ('assigned', 'done') and (purchase_id or vehicle_entry_type == 'consignment'))</attribute>
             </xpath>
             <xpath expr="//header/field[@name='state'][1]" position="before">
                 <!-- Ensure the visibility field is loaded regardless of other views. -->
@@ -23,21 +23,22 @@
                         invisible="not id or picking_type_code != 'outgoing' or state not in ('assigned', 'done')"/>
                 <button name="action_open_vehicle_conduce_incoming"
                         type="object" string="Checklist Conduce de Entrada"
-                        invisible="not id or picking_type_code != 'incoming' or state not in ('assigned', 'done') or (not purchase_id and vehicle_entry_type not in ('consignment', 'return'))"/>
+                        invisible="not id or picking_type_code != 'incoming' or state not in ('assigned', 'done') or (not purchase_id and vehicle_entry_type != 'consignment')"/>
                 <button name="%(fcr_vehicle_conduce.action_report_vehicle_conduce_outgoing)d"
                         type="action" string="Imprimir conduce"
                         invisible="not id or picking_type_code != 'outgoing' or state not in ('assigned', 'done')"/>
                 <button name="%(fcr_vehicle_conduce.action_report_vehicle_conduce_incoming)d"
                         type="action" string="Imprimir conduce"
-                        invisible="not id or picking_type_code != 'incoming' or state not in ('assigned', 'done') or (not purchase_id and vehicle_entry_type not in ('consignment', 'return'))"/>
+                        invisible="not id or picking_type_code != 'incoming' or state not in ('assigned', 'done') or (not purchase_id and vehicle_entry_type != 'consignment')"/>
             </xpath>
             <xpath expr="//field[@name='picking_type_id']" position="after">
                 <field name="vehicle_entry_type" string="Tipo de entrada"
-                       invisible="picking_type_code != 'incoming'"/>
+                       invisible="picking_type_code != 'incoming'"
+                       readonly="purchase_id"/>
             </xpath>
             <xpath expr="//sheet/notebook" position="inside">
                 <page string="Firmas Conduce"
-                      invisible="not id or state not in ('assigned', 'done') or (picking_type_code != 'outgoing' and (picking_type_code != 'incoming' or (not purchase_id and vehicle_entry_type not in ('consignment', 'return'))))">
+                      invisible="not id or state not in ('assigned', 'done') or (picking_type_code != 'outgoing' and (picking_type_code != 'incoming' or (not purchase_id and vehicle_entry_type != 'consignment')))">
                     <group>
                         <group string="Inspector">
                             <field name="vehicle_conduce_inspector_name" placeholder="Nombre del inspector"/>

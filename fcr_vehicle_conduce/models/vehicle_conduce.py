@@ -165,8 +165,8 @@ class FcrVehicleConduce(models.Model):
     vehicle_brand_id = fields.Many2one(related='vehicle_id.brand_id', string='Marca')
     vehicle_model_id = fields.Many2one(related='vehicle_id.model_id', string='Modelo')
     vehicle_model_year = fields.Selection(related='vehicle_id.model_year', string='Año')
-    vehicle_license_plate = fields.Char(related='vehicle_id.license_plate', string='Chasis')
-    vehicle_vin_sn = fields.Char(related='vehicle_id.vin_sn', string='Placa')
+    vehicle_license_plate = fields.Char(related='vehicle_id.license_plate', string='Placa')
+    vehicle_vin_sn = fields.Char(related='vehicle_id.vin_sn', string='Chasis')
     vehicle_odometer = fields.Float(
         related='vehicle_id.odometer',
         string='Kms-Millas',
@@ -242,8 +242,8 @@ class FcrVehicleConduce(models.Model):
     snapshot_vehicle_brand = fields.Char(string='Snapshot marca', readonly=True, copy=False)
     snapshot_vehicle_model = fields.Char(string='Snapshot modelo', readonly=True, copy=False)
     snapshot_vehicle_model_year = fields.Char(string='Snapshot año', readonly=True, copy=False)
-    snapshot_vehicle_license_plate = fields.Char(string='Snapshot chasis', readonly=True, copy=False)
-    snapshot_vehicle_vin_sn = fields.Char(string='Snapshot placa', readonly=True, copy=False)
+    snapshot_vehicle_license_plate = fields.Char(string='Snapshot placa', readonly=True, copy=False)
+    snapshot_vehicle_vin_sn = fields.Char(string='Snapshot chasis', readonly=True, copy=False)
     snapshot_vehicle_odometer = fields.Float(string='Snapshot odómetro', readonly=True, copy=False)
     snapshot_vehicle_odometer_unit = fields.Char(string='Snapshot unidad odómetro', readonly=True, copy=False)
     snapshot_vehicle_color = fields.Char(string='Snapshot color', readonly=True, copy=False)

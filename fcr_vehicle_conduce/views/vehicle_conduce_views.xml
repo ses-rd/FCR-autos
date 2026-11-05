@@ -138,8 +138,8 @@
                                     <field name="snapshot_vehicle_brand" readonly="1"/>
                                     <field name="snapshot_vehicle_model" readonly="1"/>
                                     <field name="snapshot_vehicle_model_year" readonly="1"/>
-                                    <field name="snapshot_vehicle_license_plate" string="Snapshot chasis" readonly="1"/>
-                                    <field name="snapshot_vehicle_vin_sn" string="Snapshot placa" readonly="1"/>
+                                    <field name="snapshot_vehicle_license_plate" readonly="1"/>
+                                    <field name="snapshot_vehicle_vin_sn" readonly="1"/>
                                     <field name="snapshot_vehicle_odometer" readonly="1"/>
                                     <field name="snapshot_vehicle_odometer_unit" readonly="1"/>
                                     <field name="snapshot_vehicle_color" readonly="1"/>

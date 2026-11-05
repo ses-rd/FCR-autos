@@ -8,7 +8,7 @@
             <t t-set="display_taxes" t-value="False"/>
         </t>
         <xpath expr="//div[hasclass('page')]" position="inside">
-            <div class="row text-center mt-5" style="page-break-inside: avoid;">
+            <div class="row text-center mt-5 signatures" style="page-break-inside: avoid;">
                 <div class="col-6 mt-2">
                     <div style="border-top: 1px solid black; width: 70%; margin: 0 auto;"/>
                     <strong class="mt-2 d-block">Preparado por</strong>
