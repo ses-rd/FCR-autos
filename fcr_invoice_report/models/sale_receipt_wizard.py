@@ -43,9 +43,12 @@ class FcrSaleReceiptWizard(models.TransientModel):
             raise UserError(_("Este asistente solo se puede abrir desde una orden de venta o factura de cliente."))
 
         receipt_source = sale_order or move
-        # Each receipt is a new payment event; default to today's date rather
-        # than carrying forward the date of the previous receipt.
-        receipt_date = fields.Date.context_today(self)
+        receipt_date = (
+            receipt_source.fcr_receipt_date
+            or getattr(receipt_source, "invoice_date", False)
+            or fields.Date.to_date(getattr(receipt_source, "date_order", False))
+            or fields.Date.context_today(self)
+        )
         receipt_rate = receipt_source._get_sale_receipt_exchange_rate()
         default_amount = (
             sale_order._get_sale_receipt_paid_amount()
@@ -89,25 +92,9 @@ class FcrSaleReceiptWizard(models.TransientModel):
 
     def action_save_and_print(self):
         self.ensure_one()
-        sale_order = self.sale_order_id.exists()
-        move = self.move_id.exists()
-        self._get_receipt_document()
-        receipt_source = sale_order or move
-        report_document = move or sale_order
-
-        if sale_order:
-            sale_order._migrate_legacy_sale_receipt()
-        elif move:
-            move._migrate_legacy_sale_receipt()
-
-        self.env["fcr.sale.receipt.history"].sudo().create({
-            "sale_order_id": sale_order.id,
-            "invoice_id": move.id,
-            "receipt_date": self.receipt_date,
-            "currency_id": self.currency_id.id,
-            "amount": self.amount,
-            "exchange_rate": self.exchange_rate,
-        })
+        document = self._get_receipt_document()
+        receipt_source = self.sale_order_id.exists() or self.move_id.exists()
+        report_document = self.move_id.exists() or self.sale_order_id.exists()
         receipt_source.write({
             "fcr_receipt_amount": self.amount,
             "fcr_receipt_date": self.receipt_date,

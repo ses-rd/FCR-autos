@@ -165,7 +165,7 @@ class SaleOrder(models.Model):
         if vehicle_line:
             vehicle = vehicle_line.product_template_id.vehicle_id
 
-        product_line = self._get_sale_receipt_primary_line()
+        product_line = self.order_line.filtered(lambda line: not line.display_type and line.product_id)[:1]
         product = product_line.product_id if product_line else False
         model = vehicle.model_id if vehicle else False
         brand = model.brand_id if model and "brand_id" in model._fields else False
@@ -191,33 +191,10 @@ class SaleOrder(models.Model):
         )
         return vehicle_values
 
-    def _get_sale_receipt_primary_line(self):
-        self.ensure_one()
-        lines = self.order_line.filtered(
-            lambda line: not line.display_type
-            and line.product_id
-            and not ("is_downpayment" in line._fields and line.is_downpayment)
-        )
-        lines = lines.filtered(lambda line: not any(
-            field_name in line.product_id.product_tmpl_id._fields
-            and line.product_id.product_tmpl_id[field_name]
-            for field_name in ("is_marbete", "is_first_registration", "is_co2")
-        ))
-        vehicle_lines = lines.filtered(
-            lambda line: "vehicle_id" in line.product_template_id._fields
-            and line.product_template_id.vehicle_id
-        )
-        return (vehicle_lines or lines)[:1]
-
     def _get_sale_receipt_items_text(self):
         self.ensure_one()
-        line = self._get_sale_receipt_primary_line()
-        return line.name or line.product_id.display_name if line else ""
-
-    def _get_sale_receipt_total_cost(self):
-        self.ensure_one()
-        line = self._get_sale_receipt_primary_line()
-        return line.price_total if line else 0.0
+        lines = self.order_line.filtered(lambda line: not line.display_type)
+        return ", ".join(lines.mapped("name"))
 
     def _get_sale_receipt_paid_amount(self):
         self.ensure_one()
@@ -227,37 +204,6 @@ class SaleOrder(models.Model):
             lambda line: not line.display_type and "is_downpayment" in line._fields and line.is_downpayment
         )
         return sum(downpayment_lines.mapped("price_total"))
-
-    def _get_sale_receipt_history_records(self):
-        self.ensure_one()
-        return self.env["fcr.sale.receipt.history"].sudo().search(
-            [("sale_order_id", "=", self.id)], order="id",
-        )
-
-    def _get_sale_receipt_paid_to_date(self):
-        self.ensure_one()
-        history = self._get_sale_receipt_history_records()
-        return sum(history.mapped("amount")) if history else self._get_sale_receipt_paid_amount()
-
-    def _migrate_legacy_sale_receipt(self):
-        self.ensure_one()
-        if self._get_sale_receipt_history_records():
-            return
-        amount = self._get_sale_receipt_paid_amount()
-        if amount <= 0:
-            return
-        receipt_date = (
-            self.fcr_receipt_date
-            or fields.Date.to_date(self.date_order)
-            or fields.Date.context_today(self)
-        )
-        self.env["fcr.sale.receipt.history"].sudo().create({
-            "sale_order_id": self.id,
-            "receipt_date": receipt_date,
-            "currency_id": self.currency_id.id,
-            "amount": amount,
-            "exchange_rate": self.fcr_receipt_exchange_rate or self._get_sale_receipt_exchange_rate() or 0.0,
-        })
 
     def _get_sale_receipt_exchange_rate(self):
         self.ensure_one()
@@ -289,36 +235,16 @@ class SaleOrder(models.Model):
             raise UserError(_("El Recibo FCR solo esta disponible en ordenes de venta confirmadas."))
         return self.env["fcr.sale.receipt.wizard"].action_open_for_document(self)
 
-    def _get_sale_receipt_values(self, receipt_history=None):
+    def _get_sale_receipt_values(self):
         self.ensure_one()
         partner = self.partner_id
-        history = self._get_sale_receipt_history_records()
-        latest_receipt = receipt_history or (history[-1:] if history else self.env["fcr.sale.receipt.history"])
-        paid_to_date = sum(history.mapped("amount")) if history else self._get_sale_receipt_paid_amount()
-        advance_payment = latest_receipt.amount if latest_receipt else paid_to_date
-        paid_before_current = max(paid_to_date - advance_payment, 0.0)
-        receipt_date = (
-            latest_receipt.receipt_date
-            if latest_receipt
-            else self.fcr_receipt_date or fields.Date.to_date(self.date_order) or fields.Date.context_today(self)
-        )
-        exchange_rate = (
-            latest_receipt.exchange_rate
-            if latest_receipt
-            else self._get_sale_receipt_exchange_rate()
-        )
-        exchange_rate_text = ""
-        if self.currency_id != self.company_id.currency_id and exchange_rate:
-            exchange_rate_text = (
-                f"Tasa del {self._get_sale_receipt_date_text_for(receipt_date)}: {exchange_rate:.2f}"
-            )
-        total_cost = self._get_sale_receipt_total_cost()
+        paid_amount = self._get_sale_receipt_paid_amount()
         phone = partner.phone or ""
         if not phone and "mobile" in partner._fields:
             phone = partner.mobile or ""
 
         return {
-            "date_text": self._get_sale_receipt_date_text_for(receipt_date),
+            "date_text": self._get_sale_receipt_date_text(),
             "document_label": self._get_sale_receipt_document_label(),
             "company": self.company_id,
             "client": partner.name or "",
@@ -327,14 +253,11 @@ class SaleOrder(models.Model):
             "email": partner.email or "",
             "vehicle": self._get_sale_receipt_vehicle(),
             "items_text": self._get_sale_receipt_items_text(),
-            "initial_payment": advance_payment,
-            "advance_payment": advance_payment,
-            "paid_before_current": paid_before_current,
-            "paid_to_date": paid_to_date,
-            "total_cost": total_cost,
-            "balance": max(total_cost - paid_to_date, 0.0),
+            "initial_payment": paid_amount,
+            "total_cost": self.amount_total,
+            "balance": self.amount_total - paid_amount,
             "currency": self.currency_id,
-            "exchange_rate": exchange_rate,
-            "exchange_rate_text": exchange_rate_text,
+            "exchange_rate": self._get_sale_receipt_exchange_rate(),
+            "exchange_rate_text": self._get_sale_receipt_exchange_rate_text(),
             "executive": self.user_id.name or "",
         }

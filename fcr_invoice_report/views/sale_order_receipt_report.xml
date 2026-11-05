@@ -274,39 +274,30 @@
 
                         <table class="fcr-amount-table">
                             <tr>
-                                <td class="fcr-amount-label">Total a pagar:</td>
+                                <td class="fcr-amount-label">Pago inicial:</td>
+                                <td class="fcr-currency" t-esc="currency_label"/>
+                                <td class="fcr-amount" t-esc="'{:,.2f}'.format(receipt.get('initial_payment') or 0.0)"/>
+                                <td class="fcr-currency-name" t-esc="currency and currency.name or ''"/>
+                                <td class="fcr-note-side" t-esc="receipt.get('exchange_rate_text')"/>
+                            </tr>
+                            <tr><td style="height: 28px;"></td></tr>
+                            <tr>
+                                <td class="fcr-amount-label">
+                                    <span t-if="has_vehicle">Costo total del vehículo:</span>
+                                    <span t-else="">Costo total:</span>
+                                    <div t-if="has_vehicle">(Incluye traspaso)</div>
+                                </td>
                                 <td class="fcr-currency" t-esc="currency_label"/>
                                 <td class="fcr-amount" t-esc="'{:,.2f}'.format(receipt.get('total_cost') or 0.0)"/>
                                 <td class="fcr-currency-name" t-esc="currency and currency.name or ''"/>
                                 <td></td>
                             </tr>
-                            <tr><td style="height: 16px;"></td></tr>
+                            <tr><td style="height: 28px;"></td></tr>
                             <tr>
-                                <td class="fcr-amount-label">Avance de pago:</td>
-                                <td class="fcr-currency" t-esc="currency_label"/>
-                                <td class="fcr-amount" t-esc="'{:,.2f}'.format(receipt.get('advance_payment') or 0.0)"/>
-                                <td class="fcr-currency-name" t-esc="currency and currency.name or ''"/>
-                                <td class="fcr-note-side" t-esc="receipt.get('exchange_rate_text')"/>
-                            </tr>
-                            <tr><td style="height: 16px;"></td></tr>
-                            <tr>
-                                <td class="fcr-amount-label">Pagado antes de este recibo:</td>
-                                <td class="fcr-currency" t-esc="currency_label"/>
-                                <td class="fcr-amount" t-esc="'{:,.2f}'.format(receipt.get('paid_before_current') or 0.0)"/>
-                                <td class="fcr-currency-name" t-esc="currency and currency.name or ''"/>
-                                <td></td>
-                            </tr>
-                            <tr><td style="height: 16px;"></td></tr>
-                            <tr>
-                                <td class="fcr-amount-label">Pagado a la fecha:</td>
-                                <td class="fcr-currency" t-esc="currency_label"/>
-                                <td class="fcr-amount" t-esc="'{:,.2f}'.format(receipt.get('paid_to_date') or 0.0)"/>
-                                <td class="fcr-currency-name" t-esc="currency and currency.name or ''"/>
-                                <td></td>
-                            </tr>
-                            <tr><td style="height: 16px;"></td></tr>
-                            <tr>
-                                <td class="fcr-amount-label">Pendiente por pagar:</td>
+                                <td class="fcr-amount-label">
+                                    Pendiente a pagar:
+                                    <div t-if="has_vehicle">(Carta BANCO)</div>
+                                </td>
                                 <td class="fcr-currency" t-esc="currency_label"/>
                                 <td class="fcr-amount" t-esc="'{:,.2f}'.format(receipt.get('balance') or 0.0)"/>
                                 <td class="fcr-currency-name" t-esc="currency and currency.name or ''"/>
