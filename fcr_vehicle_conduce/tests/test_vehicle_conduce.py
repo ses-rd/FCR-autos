@@ -704,6 +704,7 @@ class TestVehicleConduce(TransactionCase):
         picking, _purchase, vendor = self._purchase_picking()
         vendor.name = '<script>alert("entrada")</script> Proveedor & Asociados'
         vehicle = picking.move_ids.product_id.product_tmpl_id.vehicle_id
+        vehicle.license_plate = 'PLATE-FOR-CHASSIS'
         vehicle.vin_sn = 'INVIN' + '1234567890' * 4
         html, _kind = self.env['ir.actions.report']._render_qweb_html(
             self.incoming_report.report_name, picking.ids,
@@ -717,6 +718,19 @@ class TestVehicleConduce(TransactionCase):
         self.assertFalse(content.xpath('.//script'))
         self.assertIn(vendor.name, content.text_content())
         self.assertIn(vehicle.vin_sn, content.text_content())
+        self.assertIn('Placa: ' + vehicle.vin_sn, content.text_content())
+        self.assertIn('Chasis: PLATE-FOR-CHASSIS', content.text_content())
+
+    def test_outgoing_conduce_displays_swapped_plate_and_chassis(self):
+        picking, _sale = self._picking()
+        vehicle = picking.move_ids.product_id.product_tmpl_id.vehicle_id
+        vehicle.write({'license_plate': 'PLATE-FOR-CHASSIS', 'vin_sn': 'CHASSIS-FOR-PLATE'})
+        html, _kind = self.env['ir.actions.report']._render_qweb_html(
+            self.report.report_name, picking.ids,
+        )
+        text = html_parser.fromstring(html).text_content()
+        self.assertIn('Placa: CHASSIS-FOR-PLATE', text)
+        self.assertIn('Chasis: PLATE-FOR-CHASSIS', text)
 
     def test_incoming_report_rejects_mixed_batch_and_missing_ids(self):
         valid, _purchase, _vendor = self._purchase_picking()
