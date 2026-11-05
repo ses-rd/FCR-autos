@@ -1,6 +1,6 @@
 {
     "name": "FCR - Incoice",
-    "version": "19.0.1.8.10",
+    "version": "19.0.1.8.13",
     "author": "SEGU",
     "category": "Accounting",
     "summary": "Custom invoice",
@@ -12,6 +12,7 @@
         "views/account_move_views.xml",
         "views/sale_receipt_wizard_views.xml",
         "views/restore_standard_reports.xml",
+        "views/cleanup_legacy_receipt_history.xml",
         "views/sale_order_receipt_report.xml",
     ],
     "license": "LGPL-3",
