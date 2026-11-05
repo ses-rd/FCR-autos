@@ -9,7 +9,7 @@ Instalar `fcr_vehicle_conduce` y sus dependencias `eg_fleet_product_link`, `purc
 `sale_stock` y `web`.
 `fleet`, `stock`, `product` y `account` llegan mediante esas dependencias.
 
-En recepciones de vehículos se agrega el campo **Tipo de entrada** en `stock.picking`: **Adquisición FCR** (`purchase`) para compras y **Consignación** (`consignment`) para ingresos manuales por consignación. Este campo no crea un workflow de consignaciones, contratos, comisiones ni liquidaciones.
+En recepciones de vehículos se agrega el campo **Tipo de entrada** en `stock.picking`: **Compra de vehiculo** (`purchase`), **A consignacion** (`consignment`) y **Devolucion** (`return`). Las dos últimas opciones permiten entradas manuales sin compra asociada. Este campo no crea un workflow de consignaciones, contratos, comisiones ni liquidaciones.
 No depende de `l10n_do_ecf`, facturas ni módulos de nómina.
 Los módulos estándar de Odoo no están incluidos en este repositorio.
 
@@ -66,7 +66,7 @@ el conduce sigue en borrador.
 
 El dominio de Salida exige `picking_type_code = outgoing` y estado `assigned` (Listo)
 o `done` (Hecho). No exige venta. El dominio de Entrada exige `picking_type_code = incoming`,
-los mismos estados y una de estas condiciones: una compra (`purchase_id`) o `vehicle_entry_type = consignment`.
+los mismos estados y una de estas condiciones: una compra (`purchase_id`) o `vehicle_entry_type` igual a `consignment` o `return`.
 El servidor vuelve a validar cada documento, incluyendo solicitudes directas al reporte. Un lote con una
 transferencia inválida se rechaza completo; no se omiten registros silenciosamente.
 
@@ -80,9 +80,9 @@ incluye en los valores del documento, pero su ausencia no impide generar el cond
 destinatario de Salida se toma primero de `picking.partner_id`; la venta solo sirve como
 respaldo si el picking no tiene contacto. La Entrada por compra mantiene la validación de
 `move_ids.purchase_line_id.order_id`: debe ser única y coincidir con `picking.purchase_id`.
-La Entrada por consignación no requiere compra; debe estar marcada explícitamente con
-`vehicle_entry_type = consignment` y utiliza `picking.partner_id` como propietario/persona
-que consigna el vehículo.
+La Entrada manual por consignación o devolución no requiere compra; debe estar marcada explícitamente con
+`vehicle_entry_type` igual a `consignment` o `return` y utiliza `picking.partner_id` como propietario/persona
+que entrega el vehículo. El título y el concepto impresos reflejan la opción seleccionada.
 
 El vehículo se obtiene de enlaces explícitos entre producto y Fleet:
 `move_ids.product_id.product_tmpl_id.vehicle_id`, `fleet.vehicle.product_id` o

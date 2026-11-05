@@ -9,11 +9,11 @@ class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
     vehicle_entry_type = fields.Selection(
-        selection=[('purchase', 'Adquisición FCR'), ('consignment', 'Consignación')],
+        selection=[('purchase', 'Compra de vehiculo'), ('consignment', 'A consignacion'), ('return', 'Devolucion')],
         string='Tipo de entrada',
         default='purchase',
         copy=False,
-        help='Motivo operativo de entrada para vehículos. Las recepciones vinculadas a compra se tratan como Adquisición FCR.',
+        help='Motivo operativo de entrada del vehiculo.',
     )
 
     vehicle_conduce_inspector_name = fields.Char(
@@ -59,7 +59,7 @@ class StockPicking(models.Model):
             sale = self._get_vehicle_conduce_sale(moves)
             return self.partner_id or sale.partner_shipping_id or sale.partner_id
         if self.picking_type_code == 'incoming':
-            if self._get_vehicle_conduce_entry_type() == 'consignment':
+            if self._get_vehicle_conduce_entry_type() in ('consignment', 'return'):
                 return self.partner_id
             return self.partner_id or self.purchase_id.partner_id
         return self.env['res.partner']
@@ -247,8 +247,6 @@ class StockPicking(models.Model):
 
     def _get_vehicle_conduce_entry_type(self):
         self.ensure_one()
-        if self.purchase_id:
-            return 'purchase'
         return self.vehicle_entry_type or 'purchase'
 
     def _get_vehicle_conduce_incoming_purchase_values(self, date, moves):
@@ -292,7 +290,7 @@ class StockPicking(models.Model):
             'partner': partner,
         }
 
-    def _get_vehicle_conduce_incoming_consignment_values(self, date, moves):
+    def _get_vehicle_conduce_incoming_manual_values(self, date, moves, entry_type):
         self.ensure_one()
         vehicle = self._get_vehicle_conduce_vehicle(moves, _('El Conduce de Entrada'))
         partner = self.partner_id
@@ -303,16 +301,16 @@ class StockPicking(models.Model):
             ))
         return {
             **self._get_vehicle_conduce_common_values(vehicle, date),
-            'title': 'CONDUCE DE ENTRADA',
+            'title': dict(self._fields['vehicle_entry_type'].selection).get(entry_type, 'CONDUCE DE ENTRADA').upper(),
             'partner_label': 'Recibido a',
-            'concept': 'Consignación',
+            'concept': dict(self._fields['vehicle_entry_type'].selection).get(entry_type),
             'legal_text': self._get_vehicle_conduce_incoming_legal_text(),
             'purchase': self.env['purchase.order'],
             'partner': partner,
         }
 
     def _get_vehicle_conduce_incoming_values(self):
-        """Validate receipt rules through purchase_stock relations or explicit consignment."""
+        """Validate purchase receipts or manual consignment/return receipts."""
         self.ensure_one()
         if self.picking_type_code != 'incoming':
             raise UserError(_(
@@ -321,8 +319,9 @@ class StockPicking(models.Model):
             ))
         date = self._get_vehicle_conduce_date()
         moves = self._get_vehicle_conduce_moves()
-        if self._get_vehicle_conduce_entry_type() == 'consignment':
-            return self._get_vehicle_conduce_incoming_consignment_values(date, moves)
+        entry_type = self._get_vehicle_conduce_entry_type()
+        if entry_type in ('consignment', 'return'):
+            return self._get_vehicle_conduce_incoming_manual_values(date, moves, entry_type)
         return self._get_vehicle_conduce_incoming_purchase_values(date, moves)
 
     def _get_or_create_vehicle_conduce(self, conduce_type):

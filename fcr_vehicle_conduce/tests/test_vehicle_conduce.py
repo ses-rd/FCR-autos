@@ -478,6 +478,31 @@ class TestVehicleConduce(TransactionCase):
         self.assertEqual(conduce.partner_id, consignor)
         self.assertEqual(conduce.vehicle_id, vehicle)
 
+    def test_return_incoming_generates_without_purchase_and_uses_selected_label(self):
+        product, vehicle = self._vehicle_product()
+        picking, contact = self._manual_incoming_picking([product], entry_type='return')
+        values = picking._get_vehicle_conduce_incoming_values()
+        self.assertFalse(values['purchase'])
+        self.assertEqual(values['partner'], contact)
+        self.assertEqual(values['vehicle'], vehicle)
+        self.assertEqual(values['title'], 'DEVOLUCION')
+        self.assertEqual(values['concept'], 'Devolucion')
+        html, _kind = self.env['ir.actions.report']._render_qweb_html(
+            self.incoming_report.report_name, picking.ids,
+        )
+        self.assertIn(b'DEVOLUCION', html)
+
+    def test_selected_manual_entry_type_overrides_linked_purchase_for_conduce(self):
+        product, vehicle = self._vehicle_product()
+        picking, purchase, vendor = self._purchase_picking([product])
+        picking.vehicle_entry_type = 'return'
+        values = picking._get_vehicle_conduce_incoming_values()
+        self.assertEqual(values['title'], 'DEVOLUCION')
+        self.assertEqual(values['concept'], 'Devolucion')
+        self.assertFalse(values['purchase'])
+        self.assertEqual(values['partner'], vendor)
+        self.assertEqual(values['vehicle'], vehicle)
+
     def test_consignment_incoming_without_partner_rejected(self):
         picking, _consignor = self._manual_incoming_picking()
         picking.partner_id = False
@@ -679,6 +704,7 @@ class TestVehicleConduce(TransactionCase):
         picking, _purchase, vendor = self._purchase_picking()
         vendor.name = '<script>alert("entrada")</script> Proveedor & Asociados'
         vehicle = picking.move_ids.product_id.product_tmpl_id.vehicle_id
+        vehicle.license_plate = 'PLATE-FOR-CHASSIS'
         vehicle.vin_sn = 'INVIN' + '1234567890' * 4
         html, _kind = self.env['ir.actions.report']._render_qweb_html(
             self.incoming_report.report_name, picking.ids,
@@ -692,6 +718,19 @@ class TestVehicleConduce(TransactionCase):
         self.assertFalse(content.xpath('.//script'))
         self.assertIn(vendor.name, content.text_content())
         self.assertIn(vehicle.vin_sn, content.text_content())
+        self.assertIn('Placa: ' + vehicle.vin_sn, content.text_content())
+        self.assertIn('Chasis: PLATE-FOR-CHASSIS', content.text_content())
+
+    def test_outgoing_conduce_displays_swapped_plate_and_chassis(self):
+        picking, _sale = self._picking()
+        vehicle = picking.move_ids.product_id.product_tmpl_id.vehicle_id
+        vehicle.write({'license_plate': 'PLATE-FOR-CHASSIS', 'vin_sn': 'CHASSIS-FOR-PLATE'})
+        html, _kind = self.env['ir.actions.report']._render_qweb_html(
+            self.report.report_name, picking.ids,
+        )
+        text = html_parser.fromstring(html).text_content()
+        self.assertIn('Placa: CHASSIS-FOR-PLATE', text)
+        self.assertIn('Chasis: PLATE-FOR-CHASSIS', text)
 
     def test_incoming_report_rejects_mixed_batch_and_missing_ids(self):
         valid, _purchase, _vendor = self._purchase_picking()
@@ -801,6 +840,8 @@ class TestVehicleConduce(TransactionCase):
         self.assertTrue(form.xpath('//field[@name="sale_id"]'))
         self.assertTrue(form.xpath('//field[@name="purchase_id"]'))
         self.assertTrue(form.xpath('//field[@name="vehicle_entry_type"]'))
+        entry_type_field = form.xpath('//field[@name="vehicle_entry_type"]')[0]
+        self.assertFalse(entry_type_field.get('readonly'))
         self.assertTrue(form.xpath('//page[@string="Firmas Conduce"]'))
         self.assertTrue(form.xpath('//field[@name="vehicle_conduce_inspector_name"]'))
         self.assertTrue(form.xpath('//field[@name="vehicle_conduce_inspector_signature"][@widget="signature"]'))
@@ -818,7 +859,7 @@ class TestVehicleConduce(TransactionCase):
             for code in ('incoming', 'internal', 'outgoing'):
                 for sale_id in (False, 1):
                     for purchase_id in (False, 1):
-                        for vehicle_entry_type in ('purchase', 'consignment'):
+                        for vehicle_entry_type in ('purchase', 'consignment', 'return'):
                             with self.subTest(
                                 state=state, code=code, sale_id=sale_id,
                                 purchase_id=purchase_id, vehicle_entry_type=vehicle_entry_type,
@@ -838,7 +879,7 @@ class TestVehicleConduce(TransactionCase):
                                 expected_incoming = (
                                     code == 'incoming'
                                     and state in ('assigned', 'done')
-                                    and (purchase_id or vehicle_entry_type == 'consignment')
+                                    and (purchase_id or vehicle_entry_type in ('consignment', 'return'))
                                 )
                                 self.assertEqual(outgoing_visible, expected_outgoing)
                                 self.assertEqual(incoming_visible, expected_incoming)

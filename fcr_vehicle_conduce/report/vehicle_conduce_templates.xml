@@ -90,8 +90,8 @@
             </table>
             <table>
                 <tr>
-                    <td style="width: 20%">Placa: <span t-out="conduce['vehicle_license_plate']"/></td>
-                    <td style="width: 43%">Chasis: <span class="fcr-code" t-out="conduce['vehicle_vin_sn']"/></td>
+                    <td style="width: 20%">Placa: <span class="fcr-code" t-out="conduce['vehicle_vin_sn']"/></td>
+                    <td style="width: 43%">Chasis: <span t-out="conduce['vehicle_license_plate']"/></td>
                     <td style="width: 37%">Kms-Millas: <span t-out="'%.0f' % (conduce['vehicle_odometer'] or 0.0)"/> <span t-out="conduce['odometer_unit']"/></td>
                 </tr>
             </table>
