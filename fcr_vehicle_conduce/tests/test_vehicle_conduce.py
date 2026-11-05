@@ -478,6 +478,20 @@ class TestVehicleConduce(TransactionCase):
         self.assertEqual(conduce.partner_id, consignor)
         self.assertEqual(conduce.vehicle_id, vehicle)
 
+    def test_return_incoming_generates_without_purchase_and_uses_selected_label(self):
+        product, vehicle = self._vehicle_product()
+        picking, contact = self._manual_incoming_picking([product], entry_type='return')
+        values = picking._get_vehicle_conduce_incoming_values()
+        self.assertFalse(values['purchase'])
+        self.assertEqual(values['partner'], contact)
+        self.assertEqual(values['vehicle'], vehicle)
+        self.assertEqual(values['title'], 'DEVOLUCION')
+        self.assertEqual(values['concept'], 'Devolucion')
+        html, _kind = self.env['ir.actions.report']._render_qweb_html(
+            self.incoming_report.report_name, picking.ids,
+        )
+        self.assertIn(b'DEVOLUCION', html)
+
     def test_consignment_incoming_without_partner_rejected(self):
         picking, _consignor = self._manual_incoming_picking()
         picking.partner_id = False
@@ -818,7 +832,7 @@ class TestVehicleConduce(TransactionCase):
             for code in ('incoming', 'internal', 'outgoing'):
                 for sale_id in (False, 1):
                     for purchase_id in (False, 1):
-                        for vehicle_entry_type in ('purchase', 'consignment'):
+                        for vehicle_entry_type in ('purchase', 'consignment', 'return'):
                             with self.subTest(
                                 state=state, code=code, sale_id=sale_id,
                                 purchase_id=purchase_id, vehicle_entry_type=vehicle_entry_type,
@@ -838,7 +852,7 @@ class TestVehicleConduce(TransactionCase):
                                 expected_incoming = (
                                     code == 'incoming'
                                     and state in ('assigned', 'done')
-                                    and (purchase_id or vehicle_entry_type == 'consignment')
+                                    and (purchase_id or vehicle_entry_type in ('consignment', 'return'))
                                 )
                                 self.assertEqual(outgoing_visible, expected_outgoing)
                                 self.assertEqual(incoming_visible, expected_incoming)
