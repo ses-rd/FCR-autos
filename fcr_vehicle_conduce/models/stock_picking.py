@@ -247,8 +247,6 @@ class StockPicking(models.Model):
 
     def _get_vehicle_conduce_entry_type(self):
         self.ensure_one()
-        if self.purchase_id:
-            return 'purchase'
         return self.vehicle_entry_type or 'purchase'
 
     def _get_vehicle_conduce_incoming_purchase_values(self, date, moves):

@@ -492,6 +492,17 @@ class TestVehicleConduce(TransactionCase):
         )
         self.assertIn(b'DEVOLUCION', html)
 
+    def test_selected_manual_entry_type_overrides_linked_purchase_for_conduce(self):
+        product, vehicle = self._vehicle_product()
+        picking, purchase, vendor = self._purchase_picking([product])
+        picking.vehicle_entry_type = 'return'
+        values = picking._get_vehicle_conduce_incoming_values()
+        self.assertEqual(values['title'], 'DEVOLUCION')
+        self.assertEqual(values['concept'], 'Devolucion')
+        self.assertFalse(values['purchase'])
+        self.assertEqual(values['partner'], vendor)
+        self.assertEqual(values['vehicle'], vehicle)
+
     def test_consignment_incoming_without_partner_rejected(self):
         picking, _consignor = self._manual_incoming_picking()
         picking.partner_id = False
@@ -815,6 +826,8 @@ class TestVehicleConduce(TransactionCase):
         self.assertTrue(form.xpath('//field[@name="sale_id"]'))
         self.assertTrue(form.xpath('//field[@name="purchase_id"]'))
         self.assertTrue(form.xpath('//field[@name="vehicle_entry_type"]'))
+        entry_type_field = form.xpath('//field[@name="vehicle_entry_type"]')[0]
+        self.assertFalse(entry_type_field.get('readonly'))
         self.assertTrue(form.xpath('//page[@string="Firmas Conduce"]'))
         self.assertTrue(form.xpath('//field[@name="vehicle_conduce_inspector_name"]'))
         self.assertTrue(form.xpath('//field[@name="vehicle_conduce_inspector_signature"][@widget="signature"]'))

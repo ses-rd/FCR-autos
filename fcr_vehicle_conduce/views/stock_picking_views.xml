@@ -33,8 +33,7 @@
             </xpath>
             <xpath expr="//field[@name='picking_type_id']" position="after">
                 <field name="vehicle_entry_type" string="Tipo de entrada"
-                       invisible="picking_type_code != 'incoming'"
-                       readonly="purchase_id"/>
+                       invisible="picking_type_code != 'incoming'"/>
             </xpath>
             <xpath expr="//sheet/notebook" position="inside">
                 <page string="Firmas Conduce"
