@@ -39,6 +39,7 @@
 				</div>
 			</div>
 		</xpath>
+
 		<xpath expr="//table[1]/thead/tr[1]/th[1]" position="after">
 			<th class="text-right">Marca</th>
 			<th class="text-right">Modelo</th>
@@ -58,6 +59,12 @@
 			<td class="text-right">
 				<span t-field="line.registration"/>
 			</td>
+		</xpath>
+		<xpath expr="//table[1]/thead/tr[1]/th[1]" position="attributes">
+			<attribute name="t-if">False</attribute>
+		</xpath>
+		<xpath expr="//tr[@name='tr_product']/td[1]" position="attributes">
+			<attribute name="t-if">False</attribute>
 		</xpath>
 	</template>
 </odoo>
