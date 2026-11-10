@@ -39,5 +39,25 @@
 				</div>
 			</div>
 		</xpath>
+		<xpath expr="//table[1]/thead/tr[1]/th[1]" position="after">
+			<th class="text-right">Marca</th>
+			<th class="text-right">Modelo</th>
+			<th class="text-right">Color</th>
+			<th class="text-right">Placa</th>
+		</xpath>
+		<xpath expr="//tr[@name='tr_product']/td[1]" position="after">
+			<td class="text-right">
+				<span t-field="line.brand"/>
+			</td>
+			<td class="text-right">
+				<span t-field="line.model"/>
+			</td>
+			<td class="text-right">
+				<span t-field="line.color"/>
+			</td>
+			<td class="text-right">
+				<span t-field="line.registration"/>
+			</td>
+		</xpath>
 	</template>
 </odoo>
